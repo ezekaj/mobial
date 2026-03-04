@@ -1,0 +1,658 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USER MANAGEMENT ====================
+
+enum UserRole {
+  ADMIN
+  AFFILIATE
+  CUSTOMER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  DELETED
+}
+
+model User {
+  id                String      @id @default(cuid())
+  email             String      @unique
+  emailVerified     DateTime?
+  name              String?
+  passwordHash      String
+  phone             String?
+  phoneVerified     DateTime?
+  avatar            String?
+  role              UserRole    @default(CUSTOMER)
+  status            UserStatus  @default(PENDING_VERIFICATION)
+  
+  // Two-Factor Authentication
+  twoFactorEnabled  Boolean     @default(false)
+  twoFactorSecret   String?
+  twoFactorBackupCodes String?  // JSON array of backup codes
+  
+  // Security
+  lastLoginAt       DateTime?
+  lastLoginIp       String?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil       DateTime?
+  
+  // Timestamps
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  deletedAt         DateTime?   // Soft delete for GDPR
+  
+  // Relations
+  sessions          Session[]
+  auditLogs         AuditLog[]
+  gdprConsents      GDPRConsent[]
+  dataExportRequests DataExportRequest[]
+  
+  // Affiliate specific
+  affiliateProfile  AffiliateProfile?
+  affiliateLinks    AffiliateLink[]
+  commissions       Commission[]
+  affiliateClicks   AffiliateClick[]
+  
+  // Customer specific
+  orders            Order[]
+  addresses         Address[]
+  
+  // Notifications
+  notifications     Notification[]
+  
+  @@index([email])
+  @@index([role])
+  @@index([status])
+}
+
+model Session {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token         String   @unique
+  userAgent     String?
+  ipAddress     String?
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  
+  @@index([token])
+  @@index([userId])
+}
+
+model Address {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName      String
+  phone         String?
+  country       String
+  city          String?
+  postalCode    String?
+  addressLine1  String
+  addressLine2  String?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+// ==================== AFFILIATE SYSTEM ====================
+
+model AffiliateProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Affiliate Info
+  affiliateCode         String    @unique  // Unique referral code
+  companyName           String?
+  website               String?
+  taxId                 String?   // Encrypted
+  paymentMethod         String?   // bank, paypal, crypto
+  paymentDetails        String?   // Encrypted payment info
+  
+  // Status
+  status                AffiliateStatus @default(PENDING)
+  commissionRate        Float     @default(0.10)  // Default 10% commission
+  
+  // Stats
+  totalClicks           Int       @default(0)
+  totalConversions      Int       @default(0)
+  totalEarnings         Float     @default(0)
+  totalPaidOut          Float     @default(0)
+  
+  // Timestamps
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  approvedAt            DateTime?
+  
+  // Relations
+  links                 AffiliateLink[]
+  payouts               Payout[]
+  
+  @@index([affiliateCode])
+  @@index([status])
+}
+
+enum AffiliateStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+model AffiliateLink {
+  id                    String   @id @default(cuid())
+  affiliateId           String
+  affiliate             User     @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  profile               AffiliateProfile? @relation(fields: [affiliateId], references: [id])
+  
+  // Link Info
+  code                  String   @unique  // Short code
+  name                  String?
+  targetUrl             String   // Where the link points to
+  productId             String?  // Optional: link to specific product
+  
+  // Tracking
+  clicks                Int      @default(0)
+  conversions           Int      @default(0)
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Relations
+  clickEvents           AffiliateClick[]
+  
+  @@index([code])
+  @@index([affiliateId])
+}
+
+model AffiliateClick {
+  id                    String   @id @default(cuid())
+  linkId                String?
+  link                  AffiliateLink? @relation(fields: [linkId], references: [id], onDelete: SetNull)
+  affiliateId           String
+  affiliate             User     @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  
+  // Tracking Data
+  ipAddress             String?
+  userAgent             String?
+  referrer              String?
+  country               String?
+  city                  String?
+  deviceId              String?  // Hashed device fingerprint
+  
+  // Conversion
+  converted             Boolean  @default(false)
+  orderId               String?  @unique
+  order                 Order?   // Reverse relation
+  conversionValue       Float?
+  convertedAt           DateTime?
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  
+  @@index([affiliateId])
+  @@index([linkId])
+  @@index([createdAt])
+}
+
+model Commission {
+  id                    String   @id @default(cuid())
+  affiliateId           String
+  affiliate             User     @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  orderId               String?  @unique
+  order                 Order?   @relation(fields: [orderId], references: [id])
+  
+  // Commission Details
+  type                  CommissionType
+  status                CommissionStatus @default(PENDING)
+  amount                Float
+  currency              String   @default("USD")
+  baseAmount            Float    // Original order amount
+  
+  // Payout
+  payoutId              String?
+  paidAt                DateTime?
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([affiliateId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum CommissionType {
+  SALE
+  REFERRAL
+  BONUS
+  ADJUSTMENT
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+model Payout {
+  id                    String   @id @default(cuid())
+  affiliateId           String
+  affiliate             AffiliateProfile @relation(fields: [affiliateId], references: [id])
+  
+  // Payout Details
+  amount                Float
+  currency              String   @default("USD")
+  status                PayoutStatus @default(PENDING)
+  paymentMethod         String
+  paymentReference      String?
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  processedAt           DateTime?
+  
+  @@index([affiliateId])
+  @@index([status])
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ==================== PRODUCTS (MobiMatter Sync) ====================
+
+model Product {
+  id                    String   @id @default(cuid())
+  mobimatterId          String   @unique  // MobiMatter product ID
+  
+  // Product Info
+  name                  String
+  description           String?
+  provider              String
+  category              String?  // data, voice, combo
+  
+  // Coverage
+  countries             String?  // JSON array of country codes
+  regions               String?  // JSON array of regions
+  
+  // Data/Validity
+  dataAmount            Float?   // In GB
+  dataUnit              String?  // GB, MB, Unlimited
+  validityDays          Int?
+  
+  // Pricing
+  price                 Float
+  currency              String   @default("USD")
+  originalPrice         Float?   // If discounted
+  
+  // Features
+  features              String?  // JSON array of features
+  isUnlimited           Boolean  @default(false)
+  supportsHotspot       Boolean  @default(true)
+  supportsCalls         Boolean  @default(false)
+  supportsSms           Boolean  @default(false)
+  
+  // Status
+  isActive              Boolean  @default(true)
+  isFeatured            Boolean  @default(false)
+  
+  // SEO
+  slug                  String   @unique
+  metaTitle             String?
+  metaDescription       String?
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  syncedAt              DateTime?  // Last sync from MobiMatter
+  
+  // Relations
+  orderItems            OrderItem[]
+  
+  @@index([mobimatterId])
+  @@index([slug])
+  @@index([isActive])
+  @@index([provider])
+  @@index([countries])
+}
+
+// ==================== ORDERS ====================
+
+model Order {
+  id                    String   @id @default(cuid())
+  orderNumber           String   @unique
+  
+  // Customer
+  userId                String?
+  user                  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email                 String
+  phone                 String?
+  
+  // Affiliate Tracking
+  affiliateClickId      String?  @unique
+  affiliateClick        AffiliateClick? @relation(fields: [affiliateClickId], references: [id], onDelete: SetNull)
+  affiliateId           String?
+  commission            Commission?
+  
+  // Order Details
+  status                OrderStatus @default(PENDING)
+  subtotal              Float
+  discount              Float    @default(0)
+  tax                   Float    @default(0)
+  total                 Float
+  currency              String   @default("USD")
+  
+  // Payment
+  paymentStatus         PaymentStatus @default(PENDING)
+  paymentMethod         String?
+  paymentReference      String?
+  paidAt                DateTime?
+  
+  // MobiMatter Integration
+  mobimatterOrderId     String?
+  mobimatterStatus      String?
+  esimQrCode            String?
+  esimActivationCode    String?
+  esimSmdpAddress       String?
+  
+  // IP Tracking (GDPR)
+  ipAddress             String?
+  userAgent             String?
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  completedAt           DateTime?
+  
+  // Relations
+  items                 OrderItem[]
+  
+  @@index([orderNumber])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  FAILED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+model OrderItem {
+  id                    String   @id @default(cuid())
+  orderId               String
+  order                 Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId             String
+  product               Product  @relation(fields: [productId], references: [id])
+  
+  // Item Details
+  productName           String   // Snapshot at time of order
+  quantity              Int      @default(1)
+  unitPrice             Float
+  totalPrice            Float
+  
+  // eSIM Details (after activation)
+  esimIccid             String?
+  esimQrCode            String?
+  
+  createdAt             DateTime @default(now())
+  
+  @@index([orderId])
+  @@index([productId])
+}
+
+// ==================== GDPR COMPLIANCE ====================
+
+model GDPRConsent {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Consent Types
+  marketingEmails       Boolean  @default(false)
+  analytics             Boolean  @default(false)
+  thirdPartySharing     Boolean  @default(false)
+  
+  // Metadata
+  ipAddress             String?
+  userAgent             String?
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+model DataExportRequest {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Request Details
+  status                ExportStatus @default(PENDING)
+  format                String   @default("JSON")  // JSON, CSV
+  downloadUrl           String?
+  expiresAt             DateTime?
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  completedAt           DateTime?
+  
+  @@index([userId])
+  @@index([status])
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  EXPIRED
+}
+
+model DataDeletionRequest {
+  id                    String   @id @default(cuid())
+  userId                String
+  userEmail             String   // Store email before user is deleted
+  
+  // Request Details
+  status                DeletionStatus @default(PENDING)
+  reason                String?
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  processedAt           DateTime?
+  completedAt           DateTime?
+  
+  @@index([userId])
+  @@index([status])
+}
+
+enum DeletionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+// ==================== SECURITY & AUDIT ====================
+
+model AuditLog {
+  id                    String   @id @default(cuid())
+  userId                String?
+  user                  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Action Details
+  action                String   // login, logout, order_create, etc.
+  entity                String?  // user, order, product, etc.
+  entityId              String?
+  
+  // Data
+  oldValues             String?  // JSON
+  newValues             String?  // JSON
+  
+  // Metadata
+  ipAddress             String?
+  userAgent             String?
+  
+  createdAt             DateTime @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model SecurityEvent {
+  id                    String   @id @default(cuid())
+  type                  SecurityEventType
+  severity              EventSeverity @default(INFO)
+  
+  // Details
+  description           String
+  ipAddress             String?
+  userAgent             String?
+  userId                String?
+  email                 String?
+  
+  // Additional Data
+  metadata              String?  // JSON
+  
+  createdAt             DateTime @default(now())
+  
+  @@index([type])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+enum SecurityEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  PASSWORD_CHANGE
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
+  SUSPICIOUS_ACTIVITY
+  RATE_LIMIT_EXCEEDED
+  API_KEY_USED
+  DATA_EXPORT
+  DATA_DELETION
+  ACCOUNT_LOCKED
+  ACCOUNT_UNLOCKED
+}
+
+enum EventSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+// ==================== SYSTEM CONFIGURATION ====================
+
+model SystemConfig {
+  id                    String   @id @default(cuid())
+  key                   String   @unique
+  value                 String   // Encrypted if sensitive
+  isEncrypted           Boolean  @default(false)
+  description           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([key])
+}
+
+model APIKey {
+  id                    String   @id @default(cuid())
+  name                  String
+  keyHash               String   @unique  // Hashed API key
+  prefix                String   // First 8 chars for identification
+  userId                String?
+  
+  // Permissions
+  permissions           String?  // JSON array of permissions
+  
+  // Status
+  isActive              Boolean  @default(true)
+  lastUsedAt            DateTime?
+  expiresAt             DateTime?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([keyHash])
+  @@index([prefix])
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Content
+  type                  String   // order, commission, system, etc.
+  title                 String
+  message               String
+  data                  String?  // JSON additional data
+  
+  // Status
+  isRead                Boolean  @default(false)
+  readAt                DateTime?
+  
+  createdAt             DateTime @default(now())
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ==================== RATE LIMITING ====================
+
+model RateLimitLog {
+  id                    String   @id @default(cuid())
+  identifier            String   // IP or user ID
+  endpoint              String
+  requestCount          Int      @default(1)
+  windowStart           DateTime @default(now())
+  blockedAt             DateTime?
+  
+  @@index([identifier, endpoint])
+  @@index([windowStart])
+}
