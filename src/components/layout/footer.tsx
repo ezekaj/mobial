@@ -22,17 +22,12 @@ const footerLinks = {
     { name: "Global eSIMs", href: "#" },
     { name: "Pricing", href: "#" },
   ],
-  affiliate: [
-    { name: "Affiliate Program", href: "#affiliate" },
-    { name: "How It Works", href: "#how-it-works" },
-    { name: "Commission Rates", href: "#" },
-    { name: "Success Stories", href: "#" },
-  ],
   company: [
     { name: "About Us", href: "#about" },
     { name: "Contact", href: "#" },
     { name: "Blog", href: "#" },
     { name: "Careers", href: "#" },
+    { name: "How It Works", href: "#how-it-works" },
   ],
   legal: [
     { name: "Privacy Policy", href: "#" },
@@ -58,13 +53,10 @@ export function Footer() {
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center space-x-2 mb-4">
-              <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
-                <span className="text-white font-bold text-lg">M</span>
-              </div>
-              <span className="text-xl font-bold">MobiaL</span>
+              <img src="/logo.png" alt="MobiaL" className="h-10 w-auto" />
             </Link>
             <p className="text-sm text-muted-foreground mb-4">
-              Your trusted partner for affordable eSIM solutions worldwide. 
+              Your trusted partner for affordable eSIM solutions worldwide.
               Stay connected wherever you go.
             </p>
             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -94,25 +86,8 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Affiliate Links */}
-          <div>
-            <h3 className="font-semibold mb-4">Affiliate</h3>
-            <ul className="space-y-2">
-              {footerLinks.affiliate.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
           {/* Company Links */}
-          <div>
+          <div className="lg:col-span-1">
             <h3 className="font-semibold mb-4">Company</h3>
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (

@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { motion } from "framer-motion"
 import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -16,6 +17,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import { toast } from "sonner"
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -32,6 +34,7 @@ interface LoginFormProps {
 export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const router = useRouter()
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -44,12 +47,33 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true)
     try {
-      // TODO: Implement actual login API call
-      console.log("Login data:", data)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Login failed")
+      }
+
+      // Store tokens
+      if (result.data?.tokens) {
+        localStorage.setItem("token", result.data.tokens.accessToken)
+        localStorage.setItem("refreshToken", result.data.tokens.refreshToken)
+      }
+
+      toast.success("Welcome back!")
       onSuccess?.()
+      router.refresh()
     } catch (error) {
       console.error("Login error:", error)
+      toast.error(error instanceof Error ? error.message : "Login failed. Please check your credentials.")
+      form.setError("root", {
+        message: error instanceof Error ? error.message : "Login failed",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -71,6 +95,12 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {form.formState.errors.root && (
+            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+              {form.formState.errors.root.message}
+            </div>
+          )}
+
           <FormField
             control={form.control}
             name="email"

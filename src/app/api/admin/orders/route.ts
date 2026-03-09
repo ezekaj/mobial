@@ -6,6 +6,7 @@
 import { NextRequest } from 'next/server';
 import { requireAdmin, errorResponse, successResponse } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
+import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,8 +14,8 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
 
     // Parse query parameters
-    const status = url.searchParams.get('status') as string | null;
-    const paymentStatus = url.searchParams.get('paymentStatus') as string | null;
+    const status = url.searchParams.get('status') as OrderStatus | null;
+    const paymentStatus = url.searchParams.get('paymentStatus') as PaymentStatus | null;
     const search = url.searchParams.get('search') as string | null;
     const startDate = url.searchParams.get('startDate') as string | null;
     const endDate = url.searchParams.get('endDate') as string | null;
@@ -22,21 +23,21 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
     // Validate status
-    const validStatuses = ['PENDING', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'REFUNDED', 'FAILED'];
+    const validStatuses: OrderStatus[] = ['PENDING', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'REFUNDED', 'FAILED'];
     if (status && !validStatuses.includes(status)) {
       return errorResponse(`Invalid status. Valid options: ${validStatuses.join(', ')}`, 400);
     }
 
     // Validate payment status
-    const validPaymentStatuses = ['PENDING', 'PROCESSING', 'PAID', 'FAILED', 'REFUNDED', 'PARTIALLY_REFUNDED'];
+    const validPaymentStatuses: PaymentStatus[] = ['PENDING', 'PROCESSING', 'PAID', 'FAILED', 'REFUNDED', 'PARTIALLY_REFUNDED'];
     if (paymentStatus && !validPaymentStatuses.includes(paymentStatus)) {
       return errorResponse(`Invalid payment status. Valid options: ${validPaymentStatuses.join(', ')}`, 400);
     }
 
     // Build where clause
     const where: {
-      status?: string;
-      paymentStatus?: string;
+      status?: OrderStatus;
+      paymentStatus?: PaymentStatus;
       OR?: Array<{
         orderNumber?: { contains: string; mode: 'insensitive' };
         email?: { contains: string; mode: 'insensitive' };
@@ -94,43 +95,19 @@ export async function GET(request: NextRequest) {
         take: limit,
         skip: offset,
         include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-            },
-          },
-          items: {
-            select: {
-              id: true,
-              productName: true,
-              quantity: true,
-              unitPrice: true,
-              totalPrice: true,
-            },
-          },
+          user: true,
+          items: true,
           commission: {
-            select: {
-              id: true,
-              amount: true,
-              status: true,
+            include: {
               affiliate: {
-                select: {
-                  id: true,
-                  affiliateCode: true,
-                  user: {
-                    select: {
-                      name: true,
-                      email: true,
-                    },
-                  },
+                include: {
+                  user: true,
                 },
               },
             },
           },
         },
-      }),
+      } as any),
       db.order.count({ where }),
     ]);
 
@@ -146,7 +123,7 @@ export async function GET(request: NextRequest) {
     });
 
     return successResponse({
-      orders: orders.map(o => ({
+      orders: (orders as any[]).map((o: any) => ({
         id: o.id,
         orderNumber: o.orderNumber,
         status: o.status,
@@ -166,9 +143,9 @@ export async function GET(request: NextRequest) {
       })),
       stats: {
         total: stats._count,
-        totalRevenue: stats._sum.total || 0,
-        totalSubtotal: stats._sum.subtotal || 0,
-        totalDiscount: stats._sum.discount || 0,
+        totalRevenue: stats._sum.total ?? 0,
+        totalSubtotal: stats._sum.subtotal ?? 0,
+        totalDiscount: stats._sum.discount ?? 0,
       },
       pagination: {
         total,

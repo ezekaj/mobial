@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { useTheme } from "next-themes"
+import { useAuth } from "@/components/providers/auth-provider"
 import {
   Menu,
   Sun,
@@ -32,21 +33,13 @@ import { CartDrawer } from "@/components/store/cart-drawer"
 
 const navigation = [
   { name: "Products", href: "/products" },
-  { name: "Affiliate Program", href: "/#affiliate" },
   { name: "How It Works", href: "/#how-it-works" },
   { name: "About", href: "/#about" },
 ]
 
-interface HeaderProps {
-  user?: {
-    name?: string | null
-    email?: string | null
-    avatar?: string | null
-  } | null
-}
-
-export function Header({ user }: HeaderProps) {
+export function Header() {
   const { theme, setTheme } = useTheme()
+  const { user, logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
 
@@ -73,12 +66,7 @@ export function Header({ user }: HeaderProps) {
               whileTap={{ scale: 0.95 }}
               className="flex items-center space-x-2"
             >
-              <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
-                <span className="text-white font-bold text-lg">M</span>
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                MobiaL
-              </span>
+              <img src="/logo.png" alt="MobiaL" className="h-10 w-auto" />
             </motion.div>
           </Link>
 
@@ -160,7 +148,7 @@ export function Header({ user }: HeaderProps) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive cursor-pointer">
+                  <DropdownMenuItem className="text-destructive cursor-pointer" onClick={logout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Log out
                   </DropdownMenuItem>
@@ -192,7 +180,7 @@ export function Header({ user }: HeaderProps) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                <MobileNav user={user} onClose={() => setMobileOpen(false)} />
+                <MobileNav onClose={() => setMobileOpen(false)} />
               </SheetContent>
             </Sheet>
           </div>

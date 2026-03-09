@@ -14,7 +14,6 @@ datasource db {
 
 enum UserRole {
   ADMIN
-  AFFILIATE
   CUSTOMER
 }
 
@@ -59,12 +58,6 @@ model User {
   gdprConsents      GDPRConsent[]
   dataExportRequests DataExportRequest[]
   
-  // Affiliate specific
-  affiliateProfile  AffiliateProfile?
-  affiliateLinks    AffiliateLink[]
-  commissions       Commission[]
-  affiliateClicks   AffiliateClick[]
-  
   // Customer specific
   orders            Order[]
   addresses         Address[]
@@ -107,178 +100,6 @@ model Address {
   updatedAt     DateTime @updatedAt
   
   @@index([userId])
-}
-
-// ==================== AFFILIATE SYSTEM ====================
-
-model AffiliateProfile {
-  id                    String    @id @default(cuid())
-  userId                String    @unique
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Affiliate Info
-  affiliateCode         String    @unique  // Unique referral code
-  companyName           String?
-  website               String?
-  taxId                 String?   // Encrypted
-  paymentMethod         String?   // bank, paypal, crypto
-  paymentDetails        String?   // Encrypted payment info
-  
-  // Status
-  status                AffiliateStatus @default(PENDING)
-  commissionRate        Float     @default(0.10)  // Default 10% commission
-  
-  // Stats
-  totalClicks           Int       @default(0)
-  totalConversions      Int       @default(0)
-  totalEarnings         Float     @default(0)
-  totalPaidOut          Float     @default(0)
-  
-  // Timestamps
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  approvedAt            DateTime?
-  
-  // Relations
-  links                 AffiliateLink[]
-  payouts               Payout[]
-  
-  @@index([affiliateCode])
-  @@index([status])
-}
-
-enum AffiliateStatus {
-  PENDING
-  ACTIVE
-  SUSPENDED
-  REJECTED
-}
-
-model AffiliateLink {
-  id                    String   @id @default(cuid())
-  affiliateId           String
-  affiliate             User     @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
-  profile               AffiliateProfile? @relation(fields: [affiliateId], references: [id])
-  
-  // Link Info
-  code                  String   @unique  // Short code
-  name                  String?
-  targetUrl             String   // Where the link points to
-  productId             String?  // Optional: link to specific product
-  
-  // Tracking
-  clicks                Int      @default(0)
-  conversions           Int      @default(0)
-  
-  // Timestamps
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
-  // Relations
-  clickEvents           AffiliateClick[]
-  
-  @@index([code])
-  @@index([affiliateId])
-}
-
-model AffiliateClick {
-  id                    String   @id @default(cuid())
-  linkId                String?
-  link                  AffiliateLink? @relation(fields: [linkId], references: [id], onDelete: SetNull)
-  affiliateId           String
-  affiliate             User     @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
-  
-  // Tracking Data
-  ipAddress             String?
-  userAgent             String?
-  referrer              String?
-  country               String?
-  city                  String?
-  deviceId              String?  // Hashed device fingerprint
-  
-  // Conversion
-  converted             Boolean  @default(false)
-  orderId               String?  @unique
-  order                 Order?   // Reverse relation
-  conversionValue       Float?
-  convertedAt           DateTime?
-  
-  // Timestamps
-  createdAt             DateTime @default(now())
-  
-  @@index([affiliateId])
-  @@index([linkId])
-  @@index([createdAt])
-}
-
-model Commission {
-  id                    String   @id @default(cuid())
-  affiliateId           String
-  affiliate             User     @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
-  orderId               String?  @unique
-  order                 Order?   @relation(fields: [orderId], references: [id])
-  
-  // Commission Details
-  type                  CommissionType
-  status                CommissionStatus @default(PENDING)
-  amount                Float
-  currency              String   @default("USD")
-  baseAmount            Float    // Original order amount
-  
-  // Payout
-  payoutId              String?
-  paidAt                DateTime?
-  
-  // Timestamps
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
-  @@index([affiliateId])
-  @@index([status])
-  @@index([createdAt])
-}
-
-enum CommissionType {
-  SALE
-  REFERRAL
-  BONUS
-  ADJUSTMENT
-}
-
-enum CommissionStatus {
-  PENDING
-  APPROVED
-  PAID
-  CANCELLED
-  REFUNDED
-}
-
-model Payout {
-  id                    String   @id @default(cuid())
-  affiliateId           String
-  affiliate             AffiliateProfile @relation(fields: [affiliateId], references: [id])
-  
-  // Payout Details
-  amount                Float
-  currency              String   @default("USD")
-  status                PayoutStatus @default(PENDING)
-  paymentMethod         String
-  paymentReference      String?
-  
-  // Timestamps
-  createdAt             DateTime @default(now())
-  processedAt           DateTime?
-  
-  @@index([affiliateId])
-  @@index([status])
-}
-
-enum PayoutStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-  CANCELLED
 }
 
 // ==================== PRODUCTS (MobiMatter Sync) ====================
@@ -349,12 +170,6 @@ model Order {
   user                  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   email                 String
   phone                 String?
-  
-  // Affiliate Tracking
-  affiliateClickId      String?  @unique
-  affiliateClick        AffiliateClick? @relation(fields: [affiliateClickId], references: [id], onDelete: SetNull)
-  affiliateId           String?
-  commission            Commission?
   
   // Order Details
   status                OrderStatus @default(PENDING)

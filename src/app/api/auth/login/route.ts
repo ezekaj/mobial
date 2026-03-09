@@ -60,9 +60,10 @@ export async function POST(request: NextRequest) {
     }
     
     const validationResult = loginSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
-      return errorResponse(validationResult.error.errors[0]?.message || 'Invalid input', 400);
+      const firstError = validationResult.error.issues[0];
+      return errorResponse(firstError?.message || 'Invalid input', 400);
     }
     
     const { email, password, totpCode } = validationResult.data;

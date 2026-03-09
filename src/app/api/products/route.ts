@@ -4,23 +4,13 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getProducts, searchProducts, ProductFilters } from '@/services/product-service';
+import { fetchProducts as fetchMobiMatterProducts } from '@/lib/mobimatter';
 import { successResponse, errorResponse } from '@/lib/auth-helpers';
 
 /**
  * GET /api/products
  * List all active products with filtering and pagination
- * 
- * Query Parameters:
- * - country: Filter by country code
- * - region: Filter by region name
- * - provider: Filter by provider name
- * - minPrice: Minimum price filter
- * - maxPrice: Maximum price filter
- * - sortBy: Sort order (price_asc, price_desc, name, validity, data, createdAt)
- * - limit: Number of results (default 20, max 100)
- * - offset: Offset for pagination
- * - search: Search query for name/description
+ * Fetches directly from MobiMatter API
  */
 export async function GET(request: NextRequest) {
   try {
@@ -28,14 +18,12 @@ export async function GET(request: NextRequest) {
 
     // Parse query parameters
     const country = searchParams.get('country') || undefined;
-    const region = searchParams.get('region') || undefined;
     const provider = searchParams.get('provider') || undefined;
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
-    const sortBy = searchParams.get('sortBy') as ProductFilters['sortBy'] || undefined;
+    const sortBy = searchParams.get('sortBy') || undefined;
     const limitParam = searchParams.get('limit');
     const offsetParam = searchParams.get('offset');
-    const search = searchParams.get('search') || undefined;
 
     // Parse numeric values
     const limit = Math.min(Math.max(parseInt(limitParam || '20') || 20, 1), 100);
@@ -43,47 +31,41 @@ export async function GET(request: NextRequest) {
     const minPriceNum = minPrice ? parseFloat(minPrice) : undefined;
     const maxPriceNum = maxPrice ? parseFloat(maxPrice) : undefined;
 
-    // Validate numeric values
-    if (minPrice !== null && isNaN(minPriceNum!)) {
-      return errorResponse('Invalid minPrice value', 400);
-    }
-    if (maxPrice !== null && isNaN(maxPriceNum!)) {
-      return errorResponse('Invalid maxPrice value', 400);
-    }
-
-    // Validate sortBy
-    const validSortOptions = ['price_asc', 'price_desc', 'name', 'validity', 'data', 'createdAt'];
-    if (sortBy && !validSortOptions.includes(sortBy)) {
-      return errorResponse(`Invalid sortBy value. Valid options: ${validSortOptions.join(', ')}`, 400);
-    }
-
-    // Build filters
-    const filters: ProductFilters = {
-      country,
-      region,
-      provider,
-      minPrice: minPriceNum,
-      maxPrice: maxPriceNum,
-      sortBy,
-      limit,
-      offset,
-    };
-
-    // Search or filter products
-    let result;
-    if (search) {
-      result = await searchProducts(search, { limit, offset });
+    // Fetch products from MobiMatter API
+    const allProducts = await fetchMobiMatterProducts({
+      country: country || undefined,
+      provider: provider || undefined,
+    });
+    
+    // Filter products
+    let filteredProducts = allProducts.filter(p => {
+      if (minPriceNum && p.price < minPriceNum) return false;
+      if (maxPriceNum && p.price > maxPriceNum) return false;
+      return true;
+    });
+    
+    // Sort products
+    if (sortBy === 'price_asc') {
+      filteredProducts.sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'price_desc') {
+      filteredProducts.sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'name' && a.name && b.name) {
+      filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
     } else {
-      result = await getProducts(filters);
+      // Default: sortBy price (lowest first)
+      filteredProducts.sort((a, b) => a.price - b.price);
     }
-
+    
+    // Apply pagination
+    const paginatedProducts = filteredProducts.slice(offset, offset + limit);
+    
     return successResponse({
-      products: result.products,
+      products: paginatedProducts,
       pagination: {
-        total: result.total,
-        limit: result.limit,
-        offset: result.offset,
-        hasMore: result.hasMore,
+        total: filteredProducts.length,
+        limit,
+        offset,
+        hasMore: offset + limit < filteredProducts.length,
       },
     });
   } catch (error) {

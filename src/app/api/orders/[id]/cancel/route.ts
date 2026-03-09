@@ -57,12 +57,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const validationResult = cancelOrderSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
-      return errorResponse(
-        validationResult.error.errors[0]?.message || 'Invalid input',
-        400
-      );
+      const firstError = validationResult.error.issues[0];
+      return errorResponse(firstError?.message || 'Invalid input', 400);
     }
 
     const { reason } = validationResult.data;

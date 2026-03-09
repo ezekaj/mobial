@@ -5,16 +5,8 @@
 
 import { db } from '@/lib/db';
 import { logAudit } from '@/lib/audit';
-import { createOrder as mobimatterCreateOrder, getOrderStatus } from '@/lib/mobimatter';
-import {
-  validateAffiliateCode,
-  trackClick,
-  createCommission,
-  convertClick,
-  getAffiliateClick,
-  cancelCommissionForOrder,
-} from '@/lib/affiliate-tracking';
-import { Prisma, OrderStatus, PaymentStatus, CommissionStatus } from '@prisma/client';
+import { createOrder as mobimatterCreateOrder, completeOrder as mobimatterCompleteOrder, getOrderStatus } from '@/lib/mobimatter';
+import { Prisma, OrderStatus, PaymentStatus } from '@prisma/client';
 
 // Types
 export interface CreateOrderItem {
@@ -26,8 +18,6 @@ export interface CreateOrderData {
   items: CreateOrderItem[];
   email: string;
   phone?: string;
-  affiliateCode?: string;
-  affiliateClickId?: string;
 }
 
 export interface OrderTotals {
@@ -89,7 +79,7 @@ export async function calculateOrderTotal(items: CreateOrderItem[]): Promise<Ord
   // No tax for digital eSIM products (can be adjusted based on jurisdiction)
   const tax = 0;
   
-  // No automatic discounts at order level (handled via affiliate commissions)
+  // No automatic discounts at order level
   const discount = 0;
 
   return {
@@ -186,7 +176,6 @@ export async function createOrder(
       totalPrice: number;
     }>;
   };
-  affiliateClickId?: string;
 }> {
   // Validate products
   const validation = await validateProducts(data.items);
@@ -197,36 +186,6 @@ export async function createOrder(
 
   // Calculate totals
   const totals = await calculateOrderTotal(data.items);
-
-  // Handle affiliate tracking
-  let affiliateClickId: string | undefined = data.affiliateClickId;
-  let affiliateId: string | undefined;
-
-  if (data.affiliateCode && !affiliateClickId) {
-    // Validate affiliate code
-    const affiliateValidation = await validateAffiliateCode(data.affiliateCode);
-    
-    if (affiliateValidation.valid && affiliateValidation.affiliateId) {
-      affiliateId = affiliateValidation.affiliateId;
-      
-      // Track the click
-      const clickResult = await trackClick({
-        affiliateCode: data.affiliateCode,
-        ipAddress,
-        userAgent,
-      });
-      
-      if (clickResult) {
-        affiliateClickId = clickResult.clickId;
-      }
-    }
-  } else if (data.affiliateClickId) {
-    // Get existing click to get affiliate ID
-    const existingClick = await getAffiliateClick(data.affiliateClickId);
-    if (existingClick) {
-      affiliateId = existingClick.affiliateId;
-    }
-  }
 
   // Generate unique order number
   let orderNumber = generateOrderNumber();
@@ -258,8 +217,6 @@ export async function createOrder(
         discount: totals.discount,
         tax: totals.tax,
         total: totals.total,
-        affiliateClickId: affiliateClickId || null,
-        affiliateId: affiliateId || null,
         ipAddress,
         userAgent,
       },
@@ -301,7 +258,6 @@ export async function createOrder(
       email: order.email,
       total: order.total,
       itemCount: data.items.length,
-      affiliateCode: data.affiliateCode,
     },
     ipAddress,
     userAgent,
@@ -322,7 +278,6 @@ export async function createOrder(
         totalPrice: item.totalPrice,
       })),
     },
-    affiliateClickId,
   };
 }
 
@@ -389,29 +344,40 @@ export async function processOrderWithMobimatter(
 
     for (const item of order.items) {
       try {
-        // Call MobiMatter API to create order
-        const mobimatterOrder = await mobimatterCreateOrder({
+        // Step 1: Create order (pending)
+        const pendingOrder = await mobimatterCreateOrder({
           productId: item.product.mobimatterId,
           quantity: item.quantity,
           customerEmail: order.email,
           customerPhone: order.phone || undefined,
         });
 
+        // Step 2: Complete order (fulfill and get eSIM details)
+        const fulfilledOrder = await mobimatterCompleteOrder(pendingOrder.orderId);
+
+        // Extract eSIM details from the first line item
+        const lineItem = fulfilledOrder.lineItems?.[0];
+
+        if (!lineItem) {
+          throw new Error(`Order ${pendingOrder.orderId} completed but no line items returned`);
+        }
+
         // Update order item with eSIM details
         await db.orderItem.update({
           where: { id: item.id },
           data: {
-            esimQrCode: mobimatterOrder.qrCode,
-            esimIccid: mobimatterOrder.activationCode,
+            esimQrCode: lineItem.qrCode,
+            esimIccid: lineItem.iccid,
           },
         });
 
         mobimatterResults.push({
           itemId: item.id,
-          orderId: mobimatterOrder.orderId,
-          qrCode: mobimatterOrder.qrCode,
-          activationCode: mobimatterOrder.activationCode,
-          smdpAddress: mobimatterOrder.smdpAddress,
+          orderId: fulfilledOrder.orderId,
+          qrCode: lineItem.qrCode,
+          activationCode: lineItem.activationCode,
+          smdpAddress: lineItem.smdpAddress,
+          iccid: lineItem.iccid,
         });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -457,28 +423,6 @@ export async function processOrderWithMobimatter(
         completedAt: new Date(),
       },
     });
-
-    // Handle affiliate commission
-    if (order.affiliateClickId && order.affiliateId) {
-      // Convert the click
-      await convertClick(order.affiliateClickId, orderId, order.total);
-
-      // Get affiliate's commission rate
-      const affiliateProfile = await db.affiliateProfile.findUnique({
-        where: { userId: order.affiliateId },
-        select: { commissionRate: true },
-      });
-
-      if (affiliateProfile) {
-        // Create commission
-        await createCommission(
-          orderId,
-          order.affiliateId,
-          order.total,
-          affiliateProfile.commissionRate
-        );
-      }
-    }
 
     // Log audit event
     await logAudit({
@@ -690,7 +634,6 @@ export async function completeOrder(
 ) {
   const order = await db.order.findUnique({
     where: { id: orderId },
-    include: { commission: true },
   });
 
   if (!order) {
@@ -701,25 +644,13 @@ export async function completeOrder(
     throw new Error(`Cannot complete order with status: ${order.status}`);
   }
 
-  // Update order and commission in transaction
-  const updatedOrder = await db.$transaction(async (tx) => {
-    const updated = await tx.order.update({
-      where: { id: orderId },
-      data: {
-        status: 'COMPLETED',
-        completedAt: new Date(),
-      },
-    });
-
-    // Approve commission if exists
-    if (order.commission) {
-      await tx.commission.update({
-        where: { id: order.commission.id },
-        data: { status: 'APPROVED' },
-      });
-    }
-
-    return updated;
+  // Update order in transaction
+  const updatedOrder = await db.order.update({
+    where: { id: orderId },
+    data: {
+      status: 'COMPLETED',
+      completedAt: new Date(),
+    },
   });
 
   // Log audit event
@@ -761,21 +692,12 @@ export async function cancelOrder(
     throw new Error('Order is already cancelled');
   }
 
-  // Update order status and cancel commission
-  const updatedOrder = await db.$transaction(async (tx) => {
-    const updated = await tx.order.update({
-      where: { id: orderId },
-      data: {
-        status: 'CANCELLED',
-      },
-    });
-
-    // Cancel commission if exists
-    if (order.affiliateClickId) {
-      await cancelCommissionForOrder(orderId);
-    }
-
-    return updated;
+  // Update order status
+  const updatedOrder = await db.order.update({
+    where: { id: orderId },
+    data: {
+      status: 'CANCELLED',
+    },
   });
 
   // Log audit event

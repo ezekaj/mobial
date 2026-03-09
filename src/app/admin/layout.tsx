@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
+import { ErrorBoundary } from "@/components/common/error-boundary"
 import {
   LayoutDashboard,
   Users,
@@ -15,7 +16,6 @@ import {
   X,
   LogOut,
   ChevronRight,
-  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -23,6 +23,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
+import { useAuth } from "@/components/providers/auth-provider"
 
 interface AdminUser {
   id: string
@@ -38,7 +39,7 @@ const navItems = [
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ]
 
-function NavItem({ href, label, icon: Icon, active }: { href: string; label: string; icon: React.ElementType; active: boolean }) {
+function NavItem({ href, label, IconComponent, active }: { href: string; label: string; IconComponent: React.ElementType; active: boolean }) {
   return (
     <Link href={href}>
       <motion.div
@@ -49,7 +50,7 @@ function NavItem({ href, label, icon: Icon, active }: { href: string; label: str
             : "text-muted-foreground hover:bg-muted hover:text-foreground"
         }`}
       >
-        <Icon className="h-5 w-5" />
+        <IconComponent className="h-5 w-5" />
         <span className="font-medium">{label}</span>
         {active && <ChevronRight className="h-4 w-4 ml-auto" />}
       </motion.div>
@@ -63,13 +64,7 @@ function SidebarContent({ activePath, onClose }: { activePath: string; onClose?:
       {/* Logo */}
       <div className="p-6">
         <Link href="/admin" className="flex items-center gap-2" onClick={onClose}>
-          <div className="h-10 w-10 rounded-xl gradient-primary flex items-center justify-center">
-            <Shield className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <span className="font-bold text-lg">MobiaL</span>
-            <span className="text-xs text-muted-foreground block">Admin Panel</span>
-          </div>
+          <img src="/logo.png" alt="MobiaL" className="h-10 w-auto" />
         </Link>
       </div>
 
@@ -83,7 +78,7 @@ function SidebarContent({ activePath, onClose }: { activePath: string; onClose?:
               <NavItem
                 href={item.href}
                 label={item.label}
-                icon={item.icon}
+                IconComponent={item.icon}
                 active={activePath === item.href}
               />
             </div>
@@ -109,81 +104,33 @@ function SidebarContent({ activePath, onClose }: { activePath: string; onClose?:
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [user, setUser] = useState<AdminUser | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, isLoading, isAdmin, logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  useEffect(() => {
-    checkAdminAuth()
-  }, [])
-
-  const checkAdminAuth = async () => {
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        router.push("/#auth")
-        return
-      }
-
-      const response = await fetch("/api/user/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-
-      if (!response.ok) {
-        router.push("/#auth")
-        return
-      }
-
-      const data = await response.json()
-      
-      if (data.user.role !== "ADMIN") {
-        toast.error("Access denied. Admin privileges required.")
-        router.push("/")
-        return
-      }
-
-      setUser(data.user)
-    } catch (error) {
-      console.error("Auth check failed:", error)
-      router.push("/#auth")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleLogout = async () => {
-    try {
-      const token = localStorage.getItem("token")
-      if (token) {
-        await fetch("/api/auth/logout", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      }
-      localStorage.removeItem("token")
-      localStorage.removeItem("refreshToken")
-      router.push("/")
-    } catch {
-      localStorage.removeItem("token")
-      localStorage.removeItem("refreshToken")
-      router.push("/")
-    }
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     )
   }
 
-  if (!user) {
+  if (!user || !isAdmin) {
+    router.push("/")
     return null
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <ErrorBoundary fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+          <p className="text-muted-foreground mb-4">Please refresh the page and try again</p>
+          <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+        </div>
+      </div>
+    }>
+      <div className="min-h-screen bg-muted/30">
       {/* Desktop Sidebar */}
       <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-card hidden lg:block">
         <SidebarContent activePath={pathname} />
@@ -234,7 +181,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {user.name?.[0] || user.email[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
+            <Button variant="ghost" size="icon" onClick={logout}>
               <LogOut className="h-5 w-5" />
             </Button>
           </div>
@@ -252,5 +199,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </main>
     </div>
+    </ErrorBoundary>
   )
 }

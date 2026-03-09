@@ -30,9 +30,10 @@ export async function POST(request: NextRequest) {
     }
     
     const validationResult = resetSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
-      return errorResponse(validationResult.error.errors[0]?.message || 'Invalid input', 400);
+      const firstError = validationResult.error.issues[0];
+      return errorResponse(firstError?.message || 'Invalid input', 400);
     }
     
     const { token, newPassword } = validationResult.data;

@@ -118,7 +118,7 @@ export default function CheckoutPage() {
 
   const finalTotal = total - discountAmount
 
-  // Handle checkout
+  // Handle checkout - Process order on MobiaL
   const handleCheckout = async () => {
     if (!email.trim()) {
       setError("Please enter your email address")
@@ -134,30 +134,15 @@ export default function CheckoutPage() {
     setError(null)
 
     try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: items.map(item => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          })),
-          email: email.trim().toLowerCase(),
-          phone: phone.trim() || undefined,
-          affiliateCode: affiliateValidation?.valid ? affiliateValidation.affiliateCode : undefined,
-        }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Failed to create order")
-      }
-
-      const data = await response.json()
-
-      // Clear cart and redirect to order confirmation
-      clearCart()
-      router.push(`/order/${data.order.orderNumber}`)
+      // TODO: Once MobiMatter order API is available:
+      // 1. Create order (pending state)
+      // 2. Process payment (Stripe)
+      // 3. Complete order (capture from wallet)
+      // 4. Notify customer (send email)
+      
+      // For now, show a message that payment integration is coming soon
+      throw new Error('Payment integration coming soon! Please contact support to complete your order manually.')
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred")
     } finally {
@@ -236,18 +221,18 @@ export default function CheckoutPage() {
                   </CardContent>
                 </Card>
 
-                {/* Affiliate Code */}
+                {/* Affiliate Code (Optional) */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Tag className="h-5 w-5" />
-                      Have a Promo Code?
+                      Promo Code <span className="text-sm font-normal text-muted-foreground">(Optional)</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Enter affiliate code"
+                        placeholder="Enter promo code (optional)"
                         value={affiliateCode}
                         onChange={(e) => {
                           setAffiliateCode(e.target.value)
@@ -288,10 +273,13 @@ export default function CheckoutPage() {
                       </div>
                     )}
                     {affiliateValidation && !affiliateValidation.valid && (
-                      <p className="mt-3 text-sm text-destructive">
-                        Invalid affiliate code
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        Invalid code (or feature not yet configured)
                       </p>
                     )}
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Don't have a code? Continue without one.
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -341,6 +329,9 @@ export default function CheckoutPage() {
                     </>
                   )}
                 </Button>
+                <p className="text-xs text-center text-muted-foreground mt-2">
+                  Note: Payment integration coming soon. Contact support to complete manually.
+                </p>
 
                 {/* Trust Signals */}
                 <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">

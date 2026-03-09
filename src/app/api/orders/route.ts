@@ -60,10 +60,11 @@ export async function POST(request: NextRequest) {
     }
 
     const validationResult = createOrderSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0];
       return errorResponse(
-        validationResult.error.errors[0]?.message || 'Invalid input',
+        firstError?.message || 'Invalid input',
         400
       );
     }

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MobiMatter API Tester</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .test { margin: 20px 0; padding: 15px; background: #2a2a2a; border-radius: 5px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        pre { background: #000; padding: 10px; overflow: auto; }
+        input { background: #333; color: #fff; border: 1px solid #555; padding: 5px; width: 100%; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔧 MobiMatter API Endpoint Tester</h1>
+    <p>Use this to find the correct API endpoints with MobiMatter support</p>
+    
+    <div class="test">
+        <h3>Credentials (from .env.local)</h3>
+        <label>Merchant ID:</label>
+        <input type="text" id="merchantId" value="0CC70512-AB2D-4175-9F28-63028C9DBB53">
+        <label>API Key:</label>
+        <input type="text" id="apiKey" value="e66081acd05443f4bb1edc3573f159e9">
+    </div>
+
+    <div class="test">
+        <h3>Test Endpoints</h3>
+        <p>Click each button to test. Share results with MobiMatter support.</p>
+        
+        <button onclick="testEndpoint('/api/v2/wallet/balance')">Test /api/v2/wallet/balance</button>
+        <button onclick="testEndpoint('/v2/wallet/balance')">Test /v2/wallet/balance</button>
+        <button onclick="testEndpoint('/wallet/balance')">Test /wallet/balance</button>
+        <button onclick="testEndpoint('/api/v2/products')">Test /api/v2/products</button>
+        <button onclick="testEndpoint('/v2/products')">Test /v2/products</button>
+        <button onclick="testEndpoint('/api/v2/products/75b98dc7-c026-48c1-9fee-465681382d39')">Test Product by ID</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <div class="test">
+        <h3>Custom Endpoint Test</h3>
+        <input type="text" id="customEndpoint" placeholder="Enter endpoint path (e.g., /api/v2/wallet/balance)">
+        <button onclick="testCustom()">Test Custom</button>
+    </div>
+
+    <script>
+        const merchantId = document.getElementById('merchantId').value;
+        const apiKey = document.getElementById('apiKey').value;
+        const baseUrl = 'https://api.mobimatter.com/mobimatter';
+
+        async function testEndpoint(endpoint) {
+            const resultDiv = document.getElementById('results');
+            resultDiv.innerHTML += `<div class="test"><h4>Testing: ${endpoint}</h4><pre>Testing...</pre></div>`;
+            
+            try {
+                const response = await fetch(`${baseUrl}${endpoint}`, {
+                    method: 'GET',
+                    headers: {
+                        'merchantId': merchantId,
+                        'api-key': apiKey,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                const statusClass = response.ok ? 'success' : 'error';
+                
+                resultDiv.lastElementChild.querySelector('pre').innerHTML = 
+                    `<span class="${statusClass}">Status: ${response.status} ${response.ok ? '✅' : '❌'}</span>\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.lastElementChild.querySelector('pre').innerHTML = 
+                    `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+
+        function testCustom() {
+            const endpoint = document.getElementById('customEndpoint').value;
+            if (endpoint) {
+                testEndpoint(endpoint);
+            }
+        }
+    </script>
+</body>
+</html>

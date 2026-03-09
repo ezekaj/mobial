@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useTheme } from "next-themes"
+import { useAuth } from "@/components/providers/auth-provider"
 import {
   Sun,
   Moon,
@@ -18,6 +19,14 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const navigation = [
   { name: "Products", href: "#products", icon: Globe },
@@ -27,24 +36,18 @@ const navigation = [
 ]
 
 interface MobileNavProps {
-  user?: {
-    name?: string | null
-    email?: string | null
-  } | null
   onClose?: () => void
 }
 
-export function MobileNav({ user, onClose }: MobileNavProps) {
+export function MobileNav({ onClose }: MobileNavProps) {
   const { theme, setTheme } = useTheme()
+  const { user, logout } = useAuth()
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
-            <span className="text-white font-bold text-lg">M</span>
-          </div>
-          <span className="text-xl font-bold">MobiaL</span>
+          <img src="/logo.png" alt="MobiaL" className="h-10 w-auto" />
         </div>
       </div>
 
@@ -94,9 +97,12 @@ export function MobileNav({ user, onClose }: MobileNavProps) {
         {user ? (
           <>
             <div className="flex items-center space-x-3 px-3 py-2">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-5 w-5 text-primary" />
-              </div>
+              <Avatar className="h-9 w-9">
+                <AvatarImage src={user.avatar || undefined} alt={user.name || "User"} />
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {user.name?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
+                </AvatarFallback>
+              </Avatar>
               <div>
                 <p className="font-medium">{user.name || "User"}</p>
                 <p className="text-sm text-muted-foreground truncate max-w-[180px]">
@@ -123,7 +129,10 @@ export function MobileNav({ user, onClose }: MobileNavProps) {
               </Link>
               <button
                 className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors w-full text-left"
-                onClick={onClose}
+                onClick={() => {
+                  onClose?.()
+                  logout()
+                }}
               >
                 <LogOut className="h-5 w-5" />
                 <span>Log out</span>

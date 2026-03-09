@@ -33,8 +33,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const user = await getAuthUser(request);
 
     // Try to find by ID first, then by order number
-    let order = await getOrderById(id);
-    
+    let order: any = await getOrderById(id);
+
     if (!order) {
       order = await getOrderByNumber(id);
     }
@@ -65,10 +65,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get eSIM details if order is completed
-    let esimDetails = null;
-    if (order.status === 'COMPLETED') {
-      esimDetails = await getESIMDetails(order.id);
-    }
+    const esimDetails = order.status === 'COMPLETED' ? await getESIMDetails(order.id) : null;
 
     // Format response
     const response = {
@@ -86,7 +83,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         phone: order.phone,
         createdAt: order.createdAt,
         completedAt: order.completedAt,
-        items: order.items.map((item) => ({
+        items: order.items.map((item: any) => ({
           id: item.id,
           productId: item.productId,
           productName: item.productName,

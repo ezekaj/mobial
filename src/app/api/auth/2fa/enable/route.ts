@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     if (error instanceof Error && error.name === 'AuthError') {
-      return errorResponse(error.message, (error as { statusCode: number }).statusCode);
+      const authError = error as Error & { statusCode?: number };
+      return errorResponse(authError.message, authError.statusCode || 500);
     }
     console.error('2FA enable error:', error);
     return errorResponse('An error occurred', 500);

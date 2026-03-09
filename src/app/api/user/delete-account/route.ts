@@ -29,9 +29,10 @@ export async function POST(request: NextRequest) {
     }
     
     const validationResult = deleteAccountSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
-      return errorResponse(validationResult.error.errors[0]?.message || 'Invalid input', 400);
+      const firstError = validationResult.error.issues[0];
+      return errorResponse(firstError?.message || 'Invalid input', 400);
     }
     
     const { password, reason } = validationResult.data;
@@ -154,7 +155,8 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     if (error instanceof Error && error.name === 'AuthError') {
-      return errorResponse(error.message, (error as { statusCode: number }).statusCode);
+      const authError = error as Error & { statusCode?: number };
+      return errorResponse(authError.message, authError.statusCode || 500);
     }
     console.error('Account deletion error:', error);
     return errorResponse('An error occurred', 500);

@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useAdminAuth } from "@/hooks/use-admin-auth"
+import { useAuth } from "@/components/providers/auth-provider"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 
@@ -44,7 +44,18 @@ interface SidebarContentProps {
 
 export function SidebarContent({ onNavigate }: SidebarContentProps) {
   const pathname = usePathname()
-  const { user, logout } = useAdminAuth()
+  const { user, logout, isAdmin } = useAuth()
+
+  // Check admin access
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center p-4 text-center">
+        <Shield className="h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
+        <p className="text-sm text-muted-foreground mb-4">Administrator privileges required</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full">

@@ -38,6 +38,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/contexts/cart-context"
+import { ErrorBoundary } from "@/components/common/error-boundary"
 
 // Types
 interface Product {
@@ -59,13 +60,17 @@ interface Product {
 }
 
 interface ProductsResponse {
-  products: Product[]
-  pagination: {
-    total: number
-    limit: number
-    offset: number
-    hasMore: boolean
+  success: boolean
+  data: {
+    products: Product[]
+    pagination: {
+      total: number
+      limit: number
+      offset: number
+      hasMore: boolean
+    }
   }
+  error?: string
 }
 
 interface Country {
@@ -110,14 +115,16 @@ async function fetchProducts(params: {
 async function fetchCountries(): Promise<Country[]> {
   const response = await fetch("/api/products/countries")
   if (!response.ok) throw new Error("Failed to fetch countries")
-  return response.json()
+  const data = await response.json()
+  return data.data?.countries || []
 }
 
 // Fetch providers
 async function fetchProviders(): Promise<Provider[]> {
   const response = await fetch("/api/products/providers")
   if (!response.ok) throw new Error("Failed to fetch providers")
-  return response.json()
+  const data = await response.json()
+  return data.data?.providers || []
 }
 
 // Sort options
@@ -166,12 +173,12 @@ function FilterContent({
           <MapPin className="h-4 w-4" />
           Coverage Country
         </Label>
-        <Select value={selectedCountry} onValueChange={(v) => { setSelectedCountry(v); setPageZero() }}>
+        <Select value={selectedCountry || "all"} onValueChange={(v) => { setSelectedCountry(v === "all" ? "" : v); setPageZero() }}>
           <SelectTrigger>
-            <SelectValue placeholder="All countries" />
+            <SelectValue placeholder="Select country" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All countries</SelectItem>
+            <SelectItem value="all">All countries</SelectItem>
             {countries.map((country) => (
               <SelectItem key={country.code} value={country.code}>
                 {country.name} ({country.productCount})
@@ -304,7 +311,7 @@ export default function ProductsPage() {
     setPage(0)
   }
 
-  const hasActiveFilters = search || selectedCountry || selectedProviders.length > 0 || priceRange[0] > 0 || priceRange[1] < 200
+  const hasActiveFilters = !!search || !!selectedCountry || selectedProviders.length > 0 || priceRange[0] > 0 || priceRange[1] < 200
 
   // Handle buy
   const handleBuy = (product: Product) => {
@@ -491,13 +498,14 @@ export default function ProductsPage() {
               )}
 
               {/* Products */}
-              {productsData && (
-                <>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Showing {productsData.products.length} of {productsData.pagination.total} products
-                  </p>
+              {productsData?.data && (
+                <ErrorBoundary>
+                  <>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Showing {productsData.data.products?.length ?? 0} of {productsData.data.pagination?.total ?? 0} products
+                    </p>
 
-                  {productsData.products.length === 0 ? (
+                  {(productsData.data.products?.length ?? 0) === 0 ? (
                     <div className="text-center py-20">
                       <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                         <Search className="h-10 w-10 text-muted-foreground" />
@@ -512,7 +520,7 @@ export default function ProductsPage() {
                     </div>
                   ) : (
                     <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {productsData.products.map((product, index) => (
+                      {productsData.data.products?.map((product, index) => (
                         <motion.div
                           key={product.id}
                           initial={{ opacity: 0, y: 20 }}
@@ -528,7 +536,7 @@ export default function ProductsPage() {
                               dataAmount: product.dataAmount,
                               dataUnit: product.dataUnit,
                               validityDays: product.validityDays,
-                              countries: JSON.stringify(product.countries),
+                              countries: product.countries,
                               price: product.price,
                               originalPrice: product.originalPrice,
                               isUnlimited: product.isUnlimited,
@@ -545,7 +553,7 @@ export default function ProductsPage() {
                   )}
 
                   {/* Pagination */}
-                  {productsData.pagination.hasMore && (
+                  {productsData.data.pagination?.hasMore && (
                     <div className="flex justify-center mt-8">
                       <Button
                         variant="outline"
@@ -557,6 +565,7 @@ export default function ProductsPage() {
                     </div>
                   )}
                 </>
+                </ErrorBoundary>
               )}
             </div>
           </div>

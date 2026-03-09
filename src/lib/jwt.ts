@@ -28,6 +28,9 @@ interface TokenPair {
 function getJWTSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET environment variable is required in production');
+    }
     console.warn('WARNING: Using default JWT secret. Set JWT_SECRET in production!');
     return 'mobial-default-jwt-secret-do-not-use-in-production';
   }

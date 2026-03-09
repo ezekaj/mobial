@@ -14,6 +14,9 @@ const SALT_LENGTH = 64;
 function getEncryptionKey(): Buffer {
   const key = process.env.ENCRYPTION_KEY;
   if (!key) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('ENCRYPTION_KEY environment variable is required in production');
+    }
     // In development, use a default key (should be set in production)
     console.warn('WARNING: Using default encryption key. Set ENCRYPTION_KEY in production!');
     return crypto.scryptSync('mobial-default-key', 'salt', 32);

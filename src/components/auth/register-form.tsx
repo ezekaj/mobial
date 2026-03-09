@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { motion } from "framer-motion"
 import { Loader2, Mail, Lock, Eye, EyeOff, User } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -17,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Checkbox } from "@/components/ui/checkbox"
+import { toast } from "sonner"
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -46,6 +48,7 @@ interface RegisterFormProps {
 export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const router = useRouter()
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -61,12 +64,37 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true)
     try {
-      // TODO: Implement actual register API call
-      console.log("Register data:", data)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email.toLowerCase(),
+          password: data.password,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Registration failed")
+      }
+
+      // Store tokens
+      if (result.data?.tokens) {
+        localStorage.setItem("token", result.data.tokens.accessToken)
+        localStorage.setItem("refreshToken", result.data.tokens.refreshToken)
+      }
+
+      toast.success("Account created successfully!")
       onSuccess?.()
+      router.refresh()
     } catch (error) {
       console.error("Register error:", error)
+      toast.error(error instanceof Error ? error.message : "Registration failed")
+      form.setError("root", {
+        message: error instanceof Error ? error.message : "Registration failed",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -88,6 +116,12 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {form.formState.errors.root && (
+            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+              {form.formState.errors.root.message}
+            </div>
+          )}
+
           <FormField
             control={form.control}
             name="name"
