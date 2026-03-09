@@ -31,6 +31,10 @@ async function syncProducts() {
   }
   
   try {
+    // 0. Clean slate - remove all existing products to purge old "test" data
+    console.log('🗑️ Purging existing products...');
+    await prisma.product.deleteMany({});
+    
     // Fetch products from MobiMatter
     console.log('📡 Fetching products from MobiMatter API...');
     
@@ -64,13 +68,39 @@ async function syncProducts() {
         const name = mp.productFamilyName || mp.title || "";
         const provider = mp.providerName || "";
         const category = mp.productCategory || "";
+        const price = mp.retailPrice || mp.price || 0;
 
-        // FILTER OUT TEST PRODUCTS
+        // Extract data from productDetails for filtering
+        const details = Object.fromEntries(
+          (mp.productDetails || []).map(d => [d.name, d.value])
+        );
+
+        // Parse data amount correctly
+        let dataAmount = 0;
+        const dataLimitStr = details.PLAN_DATA_LIMIT;
+        const dataUnit = details.PLAN_DATA_UNIT || "GB";
+        
+        if (dataLimitStr) {
+          dataAmount = parseFloat(dataLimitStr);
+          // If unit is MB, convert to GB
+          if (dataUnit.toUpperCase() === "MB") {
+            dataAmount = dataAmount / 1000;
+          }
+        }
+
+        // AGGRESSIVE FILTERING
         const isTestProduct = 
           name.toLowerCase().includes('test') || 
           provider.toLowerCase().includes('test') ||
           category.toLowerCase().includes('test') ||
-          id === '75b98dc7-c026-48c1-9fee-465681382d39'; // Known test ID
+          id.toLowerCase().includes('test') ||
+          id === '75b98dc7-c026-48c1-9fee-465681382d39' || // Specific test ID
+          price < 1.0 || // Products under $1 are likely tests
+          (dataAmount > 0 && dataAmount < 0.05) || // Products under 50MB are likely tests
+          name.startsWith('TELNA_') || // Internal codes
+          name.startsWith('TV_SP') ||
+          name.includes('DEBUG') ||
+          details.EXTERNALLY_SHOWN === "0"; // Respect MobiMatter's internal flag
 
         if (isTestProduct) {
           skipped++;
@@ -85,18 +115,6 @@ async function syncProducts() {
           .replace(/\s+/g, '-')
           .replace(/-+/g, '-')
           .replace(/^-+|-+$/g, '');
-        
-        // Extract data from productDetails
-        const details = Object.fromEntries(
-          (mp.productDetails || []).map(d => [d.name, d.value])
-        );
-
-        // Parse data amount from PLAN_DATA_LIMIT (in MB)
-        let dataAmount = null;
-        const dataLimitStr = details.PLAN_DATA_LIMIT;
-        if (dataLimitStr) {
-          dataAmount = parseInt(dataLimitStr) / 1000;
-        }
 
         // Parse validity from PLAN_VALIDITY (in hours)
         let validityDays = null;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Package,
   ChevronRight,
@@ -11,6 +11,12 @@ import {
   Loader2,
   Search,
   AlertCircle,
+  QrCode,
+  Copy,
+  Check,
+  Zap,
+  Download,
+  Info
 } from "lucide-react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
@@ -19,7 +25,9 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
+import { useAuth } from "@/components/providers/auth-provider"
 
 // Types
 interface OrderItem {
@@ -34,119 +42,233 @@ interface Order {
   id: string
   orderNumber: string
   status: string
+  paymentStatus: string
   email: string
   total: number
   createdAt: string
   items: OrderItem[]
+  esimQrCode?: string
+  esimActivationCode?: string
+  esimSmdpAddress?: string
+  esimIccid?: string
 }
 
-interface OrdersResponse {
-  orders: Order[]
-  pagination: {
-    total: number
-    hasMore: boolean
-  }
+interface UsageData {
+  dataUsed: number
+  dataTotal: number
+  validityDaysRemaining: number
+  status: string
 }
 
-// Status colors
 const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
-  PROCESSING: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
-  COMPLETED: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
-  CANCELLED: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
-  FAILED: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
-  REFUNDED: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20",
+  PENDING: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
+  PROCESSING: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+  COMPLETED: "bg-green-500/10 text-green-700 border-green-500/20",
+  CANCELLED: "bg-red-500/10 text-red-700 border-red-500/20",
+  FAILED: "bg-red-500/10 text-red-700 border-red-500/20",
 }
 
-// Fetch orders (guest lookup by email or authenticated)
-async function fetchOrders(email?: string, limit = 20, offset = 0): Promise<OrdersResponse> {
-  const params = new URLSearchParams()
-  params.set("limit", limit.toString())
-  params.set("offset", offset.toString())
+function UsageIndicator({ orderId }: { orderId: string }) {
+  const [usage, setUsage] = useState<UsageData | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // If email provided, try guest lookup
-  if (email) {
-    // This would need a guest order lookup endpoint
-    // For now, we'll just show a message
-    return {
-      orders: [],
-      pagination: { total: 0, hasMore: false }
-    }
-  }
-
-  const response = await fetch(`/api/orders?${params.toString()}`)
-  if (!response.ok) {
-    if (response.status === 401) {
-      return {
-        orders: [],
-        pagination: { total: 0, hasMore: false }
+  useEffect(() => {
+    const fetchUsage = async () => {
+      try {
+        const res = await fetch(`/api/orders/${orderId}/usage`)
+        if (res.ok) {
+          const data = await res.json()
+          setUsage(data.data)
+        }
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
       }
     }
-    throw new Error("Failed to fetch orders")
+    fetchUsage()
+  }, [orderId])
+
+  if (loading) return <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+  if (!usage) return null
+
+  const percentUsed = (usage.dataUsed / usage.dataTotal) * 100
+  const dataRemaining = (usage.dataTotal - usage.dataUsed).toFixed(2)
+
+  return (
+    <div className="space-y-2 mt-4 pt-4 border-t border-border/50">
+      <div className="flex justify-between text-xs font-bold">
+        <span className="text-muted-foreground uppercase tracking-wider">Data Remaining</span>
+        <span className="text-primary">{dataRemaining} GB left</span>
+      </div>
+      <Progress value={100 - percentUsed} className="h-2 bg-muted" />
+      <p className="text-[10px] text-muted-foreground">
+        {usage.validityDaysRemaining} days of validity remaining
+      </p>
+    </div>
+  )
+}
+
+function OrderDetails({ order }: { order: Order }) {
+  const [copied, setCopied] = useState<string | null>(null)
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text)
+    setCopied(key)
+    toast.success("Copied to clipboard")
+    setTimeout(() => setCopied(null), 2000)
   }
-  return response.json()
-}
 
-// Format date
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  })
-}
+  return (
+    <div className="space-y-6 mt-6 pt-6 border-t border-border/50">
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* QR Code Section */}
+        <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-[2rem] border border-border/50">
+          {order.esimQrCode ? (
+            <>
+              <div className="bg-white p-4 rounded-3xl shadow-xl mb-4">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(order.esimQrCode)}`} 
+                  alt="eSIM QR Code"
+                  className="w-40 h-40"
+                />
+              </div>
+              <p className="text-sm font-bold text-center">Scan to Install eSIM</p>
+              <p className="text-xs text-muted-foreground text-center mt-2 max-w-[200px]">
+                Open your device settings and scan this code to activate your plan.
+              </p>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-2" />
+              <p className="text-sm font-medium">Provisioning your eSIM...</p>
+            </div>
+          )}
+        </div>
 
-// Format status
-const formatStatus = (status: string) => {
-  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+        {/* Manual Settings */}
+        <div className="space-y-4">
+          <h4 className="font-black text-lg flex items-center gap-2">
+            <Info className="h-5 w-5 text-primary" />
+            Manual Installation
+          </h4>
+          
+          <div className="space-y-3">
+            <div className="p-4 rounded-2xl bg-card border border-border/50 space-y-1">
+              <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">SM-DP+ Address</p>
+              <div className="flex items-center justify-between gap-2">
+                <code className="text-sm font-mono truncate">{order.esimSmdpAddress || 'Pending...'}</code>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-8 w-8" 
+                  onClick={() => order.esimSmdpAddress && copyToClipboard(order.esimSmdpAddress, 'smdp')}
+                >
+                  {copied === 'smdp' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-card border border-border/50 space-y-1">
+              <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">Activation Code</p>
+              <div className="flex items-center justify-between gap-2">
+                <code className="text-sm font-mono truncate">{order.esimActivationCode || 'Pending...'}</code>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-8 w-8"
+                  onClick={() => order.esimActivationCode && copyToClipboard(order.esimActivationCode, 'auth')}
+                >
+                  {copied === 'auth' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20">
+            <p className="text-xs leading-relaxed">
+              <span className="font-bold text-primary">Need help?</span> Go to Settings {'>'} Cellular {'>'} Add eSIM and choose "Enter Details Manually" to use these codes.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function OrderCard({ order }: { order: Order }) {
-  const router = useRouter()
+  const [isExpanded, setIsExpanded] = useState(false)
 
   return (
     <motion.div
+      layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.01 }}
-      className="cursor-pointer"
-      onClick={() => router.push(`/order/${order.orderNumber}`)}
+      className="overflow-hidden"
     >
-      <Card className="hover:border-primary/30 transition-colors">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between gap-4">
-            {/* Order Info */}
+      <Card className={cn(
+        "transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm",
+        isExpanded && "ring-2 ring-primary/20 border-primary/30"
+      )}>
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Wifi className="h-6 w-6 text-primary" />
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Wifi className="h-8 w-8 text-primary" />
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="font-semibold font-mono">{order.orderNumber}</p>
-                  <Badge variant="outline" className={statusColors[order.status] || ""}>
-                    {formatStatus(order.status)}
+                  <p className="font-black text-lg">{order.orderNumber}</p>
+                  <Badge className={cn("rounded-full font-bold uppercase text-[10px]", statusColors[order.status])}>
+                    {order.status}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {order.items.length} {order.items.length === 1 ? "item" : "items"}
-                  {" • "}
-                  {formatDate(order.createdAt)}
+                <p className="text-sm text-muted-foreground font-medium">
+                  {order.items.map(i => i.productName).join(", ")}
                 </p>
-                <p className="text-sm font-medium mt-1">
-                  ${order.total.toFixed(2)}
-                </p>
+                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground font-bold">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {new Date(order.createdAt).toLocaleDateString()}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Zap className="h-3 w-3 text-amber-500" />
+                    ${order.total.toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Items Preview */}
-            <div className="hidden sm:block text-right">
-              <p className="text-sm text-muted-foreground mb-1">
-                {order.items.slice(0, 2).map(i => i.productName).join(", ")}
-                {order.items.length > 2 && ` +${order.items.length - 2} more`}
-              </p>
-              <ChevronRight className="h-5 w-5 text-muted-foreground inline-block" />
+            <div className="flex items-center gap-3">
+              {order.status === 'COMPLETED' && (
+                <Button 
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  variant={isExpanded ? "secondary" : "default"}
+                  className="rounded-full font-bold px-6 h-12"
+                >
+                  {isExpanded ? "Close Details" : "View eSIM Details"}
+                  <ChevronRight className={cn("ml-2 h-4 w-4 transition-transform", isExpanded && "rotate-90")} />
+                </Button>
+              )}
             </div>
           </div>
+
+          {order.status === 'COMPLETED' && !isExpanded && (
+            <UsageIndicator orderId={order.id} />
+          )}
+
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <OrderDetails order={order} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
     </motion.div>
@@ -163,48 +285,43 @@ function GuestOrderLookup() {
       toast.error("Please enter an order number")
       return
     }
-
     setSearching(true)
-    // Try to fetch the order
     try {
       const response = await fetch(`/api/orders/${orderNumber.trim()}`)
       if (response.ok) {
         router.push(`/order/${orderNumber.trim()}`)
       } else {
-        toast.error("Order not found. Please check the order number.")
+        toast.error("Order not found")
       }
     } catch {
-      toast.error("Failed to search for order")
+      toast.error("Search failed")
     } finally {
       setSearching(false)
     }
   }
 
   return (
-    <Card className="max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Search className="h-5 w-5" />
-          Find Your Order
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Enter your order number to view your order details and eSIM information.
+    <Card className="max-w-xl mx-auto rounded-[2.5rem] border-border/50 shadow-2xl overflow-hidden bg-card/80 backdrop-blur-xl">
+      <CardHeader className="text-center p-10 pb-2">
+        <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+          <Search className="h-10 w-10 text-primary" />
+        </div>
+        <CardTitle className="text-3xl font-black tracking-tight">Track Your eSIM</CardTitle>
+        <p className="text-muted-foreground font-medium mt-2">
+          Enter your order number from your confirmation email.
         </p>
-        <div className="flex gap-2">
+      </CardHeader>
+      <CardContent className="p-10 pt-6 space-y-6">
+        <div className="flex gap-2 p-2 bg-muted rounded-[2rem] border focus-within:ring-2 ring-primary/20 transition-all">
           <Input
             placeholder="MBL-XXXXXXXX"
+            className="border-0 focus-visible:ring-0 text-lg h-14 bg-transparent pl-4"
             value={orderNumber}
             onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
-          <Button onClick={handleSearch} disabled={searching}>
-            {searching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
+          <Button onClick={handleSearch} disabled={searching} className="rounded-2xl h-14 px-8 font-bold text-lg">
+            {searching ? <Loader2 className="h-6 w-6 animate-spin" /> : "Find Order"}
           </Button>
         </div>
       </CardContent>
@@ -212,151 +329,100 @@ function GuestOrderLookup() {
   )
 }
 
-function EmptyOrdersState() {
-  return (
-    <div className="text-center py-12">
-      <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-        <Package className="h-10 w-10 text-muted-foreground" />
-      </div>
-      <h3 className="text-lg font-semibold mb-2">No orders yet</h3>
-      <p className="text-muted-foreground mb-4">
-        When you place an order, it will appear here
-      </p>
-      <Button asChild>
-        <a href="/products">Browse eSIM Plans</a>
-      </Button>
-    </div>
-  )
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(" ")
 }
 
 export default function OrdersPage() {
-  const router = useRouter()
+  const { user, isLoading: authLoading, openAuthModal } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [hasMore, setHasMore] = useState(false)
-  const [total, setTotal] = useState(0)
 
   useEffect(() => {
-    loadOrders()
-  }, [])
-
-  const loadOrders = async () => {
-    try {
-      setLoading(true)
-      const response = await fetchOrders()
-      setOrders(response.orders)
-      setTotal(response.pagination.total)
-      setHasMore(response.pagination.hasMore)
-      setIsAuthenticated(true)
-    } catch (error) {
-      // If 401, user is not authenticated
-      setIsAuthenticated(false)
-    } finally {
+    if (!authLoading && user) {
+      loadOrders()
+    } else if (!authLoading && !user) {
       setLoading(false)
     }
-  }
+  }, [user, authLoading])
 
-  const loadMore = async () => {
-    if (!hasMore || loading) return
-
+  const loadOrders = async (offset = 0) => {
     try {
       setLoading(true)
-      const response = await fetchOrders(undefined, 20, orders.length)
-      setOrders(prev => [...prev, ...response.orders])
-      setHasMore(response.pagination.hasMore)
-    } catch {
-      toast.error("Failed to load more orders")
+      const res = await fetch(`/api/orders?limit=20&offset=${offset}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (offset === 0) {
+          setOrders(data.data.orders)
+        } else {
+          setOrders(prev => [...prev, ...data.data.orders])
+        }
+        setHasMore(data.data.pagination.hasMore)
+      }
+    } catch (error) {
+      console.error(error)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-muted/30">
       <Header />
 
-      <main className="flex-1">
-        <div className="border-b bg-muted/20">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <h1 className="text-3xl font-bold mb-2">My Orders</h1>
-              <p className="text-muted-foreground">
-                View your order history and eSIM details
-              </p>
-            </motion.div>
+      <main className="flex-1 pb-20">
+        <section className="pt-16 pb-12">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">My Dashboard</h1>
+            <p className="text-muted-foreground font-medium max-w-xl mx-auto">
+              Manage your eSIMs, track data usage, and view your complete purchase history.
+            </p>
           </div>
-        </div>
+        </section>
 
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {loading && orders.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="container mx-auto px-4 max-w-5xl">
+          {authLoading || (loading && orders.length === 0) ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
-          ) : isAuthenticated === false ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Tabs defaultValue="lookup" className="max-w-2xl mx-auto">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="lookup">Find Order</TabsTrigger>
-                  <TabsTrigger value="login">Sign In</TabsTrigger>
-                </TabsList>
-                <TabsContent value="lookup" className="mt-6">
-                  <GuestOrderLookup />
-                </TabsContent>
-                <TabsContent value="login" className="mt-6">
-                  <Card className="max-w-md mx-auto">
-                    <CardContent className="p-6 text-center">
-                      <p className="text-muted-foreground mb-4">
-                        Sign in to see all your orders in one place
-                      </p>
-                      <Button onClick={() => router.push("/#auth")}>
-                        Sign In / Sign Up
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </motion.div>
+          ) : !user ? (
+            <div className="space-y-12">
+              <GuestOrderLookup />
+              <div className="text-center space-y-4">
+                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Or sign in to your account</p>
+                <Button variant="outline" size="lg" className="rounded-2xl px-12 h-14 font-black border-2" onClick={() => openAuthModal("login")}>
+                  Login to Access All Orders
+                </Button>
+              </div>
+            </div>
           ) : orders.length === 0 ? (
-            <EmptyOrdersState />
+            <div className="text-center py-20 bg-card border rounded-[3rem] shadow-xl space-y-6">
+              <div className="w-24 h-24 bg-muted rounded-[2rem] flex items-center justify-center mx-auto">
+                <Package className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black">No active orders</h3>
+                <p className="text-muted-foreground">You haven't purchased any eSIMs yet.</p>
+              </div>
+              <Button size="lg" className="rounded-2xl px-10 h-14 font-black" asChild>
+                <a href="/products">Shop eSIM Plans</a>
+              </Button>
+            </div>
           ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="max-w-3xl mx-auto space-y-4"
-            >
-              <p className="text-sm text-muted-foreground mb-4">
-                {total} {total === 1 ? "order" : "orders"} found
-              </p>
-
+            <div className="space-y-6">
               {orders.map((order) => (
                 <OrderCard key={order.id} order={order} />
               ))}
-
+              
               {hasMore && (
-                <div className="flex justify-center mt-8">
-                  <Button variant="outline" onClick={loadMore} disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <Clock className="h-4 w-4 mr-2" />
-                        Load More
-                      </>
-                    )}
+                <div className="flex justify-center pt-8">
+                  <Button variant="ghost" className="font-black text-primary hover:bg-primary/5 rounded-2xl h-14 px-12" onClick={() => loadOrders(orders.length)} disabled={loading}>
+                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Load More Orders"}
                   </Button>
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
         </div>
       </main>
