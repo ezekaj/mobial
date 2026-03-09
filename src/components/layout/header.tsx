@@ -39,7 +39,7 @@ const navigation = [
 
 export function Header() {
   const { theme, setTheme } = useTheme()
-  const { user, logout } = useAuth()
+  const { user, logout, openAuthModal } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
 
@@ -156,17 +156,13 @@ export function Header() {
               </DropdownMenu>
             ) : (
               <div className="hidden sm:flex items-center space-x-2">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/#auth">
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Login
-                  </Link>
+                <Button variant="ghost" size="sm" onClick={() => openAuthModal("login")}>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Login
                 </Button>
-                <Button size="sm" className="gradient-accent text-accent-foreground" asChild>
-                  <Link href="/#auth">
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Sign Up
-                  </Link>
+                <Button size="sm" className="gradient-accent text-accent-foreground" onClick={() => openAuthModal("register")}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Sign Up
                 </Button>
               </div>
             )}

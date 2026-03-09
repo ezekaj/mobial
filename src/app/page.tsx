@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAuth } from "@/components/providers/auth-provider"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -51,6 +52,7 @@ const STEPS = [
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const { openAuthModal } = useAuth()
 
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary/20">
@@ -266,6 +268,14 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row justify-center gap-4 relative z-10">
                 <Button size="lg" className="rounded-2xl px-12 h-16 text-xl font-black" asChild>
                   <Link href="/products">Get your eSIM</Link>
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="rounded-2xl px-12 h-16 text-xl font-black border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all" 
+                  onClick={() => openAuthModal("register")}
+                >
+                  Start Now
                 </Button>
               </div>
             </div>

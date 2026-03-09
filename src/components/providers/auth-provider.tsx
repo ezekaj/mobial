@@ -2,12 +2,13 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react"
 import { useRouter, usePathname } from "next/navigation"
+import { AuthModal } from "@/components/auth/auth-modal"
 
 interface User {
   id: string
   email: string
   name: string | null
-  role: "ADMIN" | "AFFILIATE" | "CUSTOMER"
+  role: "ADMIN" | "CUSTOMER"
   avatar?: string | null
 }
 
@@ -16,9 +17,10 @@ interface AuthContextType {
   isLoading: boolean
   isAuthenticated: boolean
   isAdmin: boolean
-  isAffiliate: boolean
   logout: () => Promise<void>
   refresh: () => Promise<void>
+  openAuthModal: (view?: "login" | "register") => void
+  closeAuthModal: () => void
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -26,6 +28,9 @@ const AuthContext = createContext<AuthContextType | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalView, setModalView] = useState<"login" | "register">("login")
+  
   const router = useRouter()
   const pathname = usePathname()
 
@@ -34,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem("token")
       if (!token) {
         setUser(null)
+        setIsLoading(false)
         return
       }
 
@@ -43,7 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!response.ok) {
         if (response.status === 401) {
-          // Try to refresh token
           const refreshToken = localStorage.getItem("refreshToken")
           if (refreshToken) {
             const refreshResponse = await fetch("/api/auth/refresh", {
@@ -57,7 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               if (refreshData.data) {
                 localStorage.setItem("token", refreshData.data.accessToken)
                 localStorage.setItem("refreshToken", refreshData.data.refreshToken)
-                // Retry fetching user
                 const retryResponse = await fetch("/api/user/me", {
                   headers: { Authorization: `Bearer ${refreshData.data.accessToken}` },
                 })
@@ -65,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   const userData = await retryResponse.json()
                   if (userData.success && userData.data?.user) {
                     setUser(userData.data.user)
+                    setIsLoading(false)
                     return
                   }
                 }
@@ -75,12 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("token")
         localStorage.removeItem("refreshToken")
         setUser(null)
-        return
-      }
-
-      const userData = await response.json()
-      if (userData.success && userData.data?.user) {
-        setUser(userData.data.user)
+      } else {
+        const userData = await response.json()
+        if (userData.success && userData.data?.user) {
+          setUser(userData.data.user)
+        }
       }
     } catch (error) {
       console.error("Auth fetch error:", error)
@@ -113,6 +117,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const openAuthModal = (view: "login" | "register" = "login") => {
+    setModalView(view)
+    setIsModalOpen(true)
+  }
+
+  const closeAuthModal = () => setIsModalOpen(false)
+
   const refresh = async () => {
     await fetchAuth()
   }
@@ -122,14 +133,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     isAuthenticated: !!user,
     isAdmin: user?.role === "ADMIN",
-    isAffiliate: user?.role === "AFFILIATE",
     logout,
     refresh,
+    openAuthModal,
+    closeAuthModal,
   }
 
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
+      <AuthModal 
+        open={isModalOpen} 
+        onOpenChange={setIsModalOpen} 
+        defaultView={modalView} 
+      />
     </AuthContext.Provider>
   )
 }
