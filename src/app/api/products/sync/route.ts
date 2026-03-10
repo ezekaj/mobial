@@ -8,6 +8,7 @@ import { syncProductsFromMobimatter } from '@/services/product-service';
 import { requireAdmin, successResponse, errorResponse, getClientIP, getUserAgent } from '@/lib/auth-helpers';
 import { logAudit } from '@/lib/audit';
 import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limit';
+import { db } from '@/lib/db';
 
 /**
  * POST /api/products/sync
@@ -84,6 +85,16 @@ export async function POST(request: NextRequest) {
       },
       ipAddress,
       userAgent,
+    });
+
+    await db.systemConfig.upsert({
+      where: { key: 'last_product_sync' },
+      update: { value: new Date().toISOString() },
+      create: {
+        key: 'last_product_sync',
+        value: new Date().toISOString(),
+        description: 'Last product sync timestamp',
+      },
     });
 
     if (!result.success) {
