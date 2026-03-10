@@ -60,6 +60,10 @@ export const metadata: Metadata = {
     description: "Connect instantly in 150+ countries.",
     images: ["/og-image.png"],
   },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/icons/icon-192x192.png",
+  },
   robots: {
     index: true,
     follow: true,

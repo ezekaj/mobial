@@ -71,6 +71,14 @@ self.addEventListener('fetch', (event) => {
   // Skip chrome-extension and other non-http(s) requests
   if (!url.protocol.startsWith('http')) return;
 
+  // Skip Next.js RSC requests — let the framework handle them directly
+  if (url.searchParams.has('_rsc') ||
+      request.headers.get('RSC') === '1' ||
+      request.headers.get('Next-Router-State-Tree') ||
+      request.headers.get('Next-Router-Prefetch')) {
+    return;
+  }
+
   if (isApiRequest(url)) {
     event.respondWith(networkFirst(request, API_CACHE_NAME));
   } else if (isImageRequest(request, url)) {

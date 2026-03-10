@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { getCountryBySlug, getAllCountrySlugs, TOP_DESTINATIONS } from "@/lib/countries"
+import { getCountryBySlug } from "@/lib/countries"
 import { CountryProductGrid } from "./product-grid"
 
 interface PageProps {
@@ -31,9 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export function generateStaticParams() {
-  return TOP_DESTINATIONS.map((slug) => ({ country: slug }))
-}
+export const dynamic = 'force-dynamic'
 
 const STEPS = [
   {

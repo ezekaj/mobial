@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/components/providers/auth-provider"
 import {
@@ -29,10 +30,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const navigation = [
-  { name: "Products", href: "#products", icon: Globe },
-  { name: "Affiliate Program", href: "#affiliate", icon: Gift },
-  { name: "How It Works", href: "#how-it-works", icon: HelpCircle },
-  { name: "About", href: "#about", icon: Info },
+  { name: "Products", href: "/products", icon: Globe },
+  { name: "Referrals", href: "/referrals", icon: Gift },
+  { name: "How It Works", href: "/#how-it-works", icon: HelpCircle },
+  { name: "About", href: "/about", icon: Info },
 ]
 
 interface MobileNavProps {
@@ -41,13 +42,13 @@ interface MobileNavProps {
 
 export function MobileNav({ onClose }: MobileNavProps) {
   const { theme, setTheme } = useTheme()
-  const { user, logout } = useAuth()
+  const { user, logout, openAuthModal } = useAuth()
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
-          <img src="/logo.png" alt="MobiaL" className="h-10 w-auto" />
+          <Image src="/logo.png" alt="MobiaL" width={120} height={40} className="h-10 w-auto" />
         </div>
       </div>
 
@@ -141,17 +142,26 @@ export function MobileNav({ onClose }: MobileNavProps) {
           </>
         ) : (
           <div className="flex flex-col space-y-2 px-3">
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="#auth" onClick={onClose}>
-                <LogIn className="mr-2 h-4 w-4" />
-                Login
-              </Link>
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => {
+                onClose?.()
+                openAuthModal("login")
+              }}
+            >
+              <LogIn className="mr-2 h-4 w-4" />
+              Login
             </Button>
-            <Button className="w-full justify-start gradient-accent text-accent-foreground" asChild>
-              <Link href="#auth" onClick={onClose}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Sign Up
-              </Link>
+            <Button
+              className="w-full justify-start gradient-accent text-accent-foreground"
+              onClick={() => {
+                onClose?.()
+                openAuthModal("register")
+              }}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Sign Up
             </Button>
           </div>
         )}

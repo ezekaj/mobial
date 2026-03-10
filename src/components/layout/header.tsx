@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { useTheme } from "next-themes"
@@ -67,7 +68,7 @@ export function Header() {
               whileTap={{ scale: 0.95 }}
               className="flex items-center space-x-2"
             >
-              <img src="/logo.png" alt="MobiaL" className="h-10 w-auto" />
+              <Image src="/logo.png" alt="MobiaL" width={120} height={40} className="h-10 w-auto" />
             </motion.div>
           </Link>
 

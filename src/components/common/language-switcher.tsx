@@ -27,14 +27,19 @@ export function LanguageSwitcher() {
   const currentLanguage = languages.find((l) => l.code === locale) ?? languages[0]
 
   async function handleLocaleChange(newLocale: string) {
-    await fetch("/api/locale", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ locale: newLocale }),
-    })
-    startTransition(() => {
-      router.refresh()
-    })
+    try {
+      const res = await fetch("/api/locale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: newLocale }),
+      })
+      if (!res.ok) return
+      startTransition(() => {
+        router.refresh()
+      })
+    } catch {
+      // Silently fail — locale unchanged
+    }
   }
 
   return (

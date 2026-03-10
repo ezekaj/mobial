@@ -311,7 +311,7 @@ export default function CheckoutPage() {
                     )}
                     {affiliateValidation && !affiliateValidation.valid && (
                       <p className="mt-3 text-sm text-muted-foreground">
-                        Invalid code (or feature not yet configured)
+                        Invalid promo code. Please check and try again.
                       </p>
                     )}
                     <p className="mt-2 text-xs text-muted-foreground">

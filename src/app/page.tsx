@@ -180,7 +180,7 @@ export default function HomePage() {
         </section>
 
         {/* How it Works */}
-        <section className="py-32 overflow-hidden">
+        <section id="how-it-works" className="py-32 overflow-hidden">
           <div className="container mx-auto px-4">
             <div className="flex flex-col lg:flex-row items-center gap-16">
               <div className="flex-1 space-y-8">
@@ -255,8 +255,8 @@ export default function HomePage() {
 
         <ReviewsSection />
 
-        {/* CTA Section */}
-        <section className="py-20">
+        {/* CTA / About Section */}
+        <section id="about" className="py-20">
           <div className="container mx-auto px-4">
             <div className="relative rounded-[3rem] bg-foreground text-background overflow-hidden p-12 md:p-24 text-center space-y-8">
               <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-primary blur-[100px] opacity-20" />

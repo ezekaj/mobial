@@ -1,16 +1,14 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { motion } from "framer-motion"
 import {
   Globe,
   Mail,
   Shield,
-  FileText,
   Lock,
   Twitter,
-  Linkedin,
-  Github,
   Facebook
 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
@@ -37,10 +35,8 @@ const footerLinks = {
 }
 
 const socialLinks = [
-  { name: "Twitter", icon: Twitter, href: "#" },
-  { name: "LinkedIn", icon: Linkedin, href: "#" },
-  { name: "GitHub", icon: Github, href: "#" },
-  { name: "Facebook", icon: Facebook, href: "#" },
+  { name: "Twitter", icon: Twitter, href: "https://x.com/mobial_esim" },
+  { name: "Facebook", icon: Facebook, href: "https://facebook.com/mobial" },
 ]
 
 export function Footer() {
@@ -52,7 +48,7 @@ export function Footer() {
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center space-x-2 mb-4">
-              <img src="/logo.png" alt="MobiaL" className="h-10 w-auto" />
+              <Image src="/logo.png" alt="MobiaL" width={120} height={40} className="h-10 w-auto" />
             </Link>
             <p className="text-sm text-muted-foreground mb-4">
               Your trusted partner for affordable eSIM solutions worldwide.

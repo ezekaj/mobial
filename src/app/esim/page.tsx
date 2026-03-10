@@ -6,6 +6,8 @@ import { Globe } from "lucide-react"
 import { countries, getAllCountrySlugs } from "@/lib/countries"
 import { DestinationGrid } from "./destination-grid"
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: "eSIM Plans by Country",
   description:
