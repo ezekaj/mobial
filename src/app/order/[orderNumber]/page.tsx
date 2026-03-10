@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
+import { UsageTracker } from "@/components/store/usage-tracker"
 import { toast } from "sonner"
 import Link from "next/link"
 import { useParams } from "next/navigation"
@@ -180,6 +181,14 @@ export default function OrderSuccessPage() {
 
             {/* Right: Checklist & Info */}
             <div className="lg:col-span-2 space-y-8">
+              {/* Usage Tracker for completed orders */}
+              {order.status === "COMPLETED" && order.id && (
+                <UsageTracker
+                  orderId={order.id}
+                  orderNumber={order.orderNumber}
+                />
+              )}
+
               <div className="space-y-6">
                 <h3 className="text-xl font-black tracking-tight">Installation Checklist</h3>
                 <div className="space-y-4">
