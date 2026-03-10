@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
+import { NextIntlClientProvider } from "next-intl"
+import { getLocale, getMessages } from "next-intl/server"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { AuthProvider } from "@/components/providers/auth-provider"
 import { ReactQueryProvider } from "@/components/providers/react-query-provider"
@@ -64,30 +66,35 @@ export const metadata: Metadata = {
   }
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const locale = await getLocale()
+  const messages = await getMessages()
+
   return (
-    <html lang="en" suppressHydrationWarning className="dark">
+    <html lang={locale} suppressHydrationWarning className="dark">
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
-        <ReactQueryProvider>
-          <AuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="dark"
-              enableSystem={false}
-              disableTransitionOnChange
-            >
-              <CartProvider>
-                {children}
-                <NotificationPrompt />
-                <Toaster position="top-center" expand={true} richColors />
-              </CartProvider>
-            </ThemeProvider>
-          </AuthProvider>
-        </ReactQueryProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ReactQueryProvider>
+            <AuthProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="dark"
+                enableSystem={false}
+                disableTransitionOnChange
+              >
+                <CartProvider>
+                  {children}
+                  <NotificationPrompt />
+                  <Toaster position="top-center" expand={true} richColors />
+                </CartProvider>
+              </ThemeProvider>
+            </AuthProvider>
+          </ReactQueryProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

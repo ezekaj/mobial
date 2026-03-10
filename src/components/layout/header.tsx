@@ -30,6 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { MobileNav } from "./mobile-nav"
 import { CartDrawer } from "@/components/store/cart-drawer"
+import { LanguageSwitcher } from "@/components/common/language-switcher"
 
 const navigation = [
   { name: "Products", href: "/products" },
@@ -89,6 +90,9 @@ export function Header() {
 
           {/* Right side actions */}
           <div className="flex items-center space-x-2">
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+
             {/* Theme Toggle */}
             <Button
               variant="ghost"
