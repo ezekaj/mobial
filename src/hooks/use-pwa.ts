@@ -148,9 +148,10 @@ export function usePWA(): UsePWAReturn {
 
   const isPWA = isStandalone;
 
-  // Register service worker
+  // Register service worker (production only)
   useEffect(() => {
     if (typeof window === "undefined" || !getIsSupported()) return;
+    if (process.env.NODE_ENV !== "production") return;
 
     const registerSW = async () => {
       try {
