@@ -1,96 +1,111 @@
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { requireAdmin } from "@/lib/auth-helpers"
+import { NextRequest } from 'next/server';
+import { db } from '@/lib/db';
+import {
+  requireAdmin,
+  successResponse,
+  errorResponse,
+  AuthError,
+} from '@/lib/auth-helpers';
+import { getAllAffiliates } from '@/services/affiliate-service';
+
+async function tryGetWalletBalance(): Promise<number | null> {
+  try {
+    const { getWalletBalance } = await import('@/lib/mobimatter');
+    if (typeof getWalletBalance === 'function') {
+      const wallet = await getWalletBalance();
+      return wallet.balance;
+    }
+  } catch {}
+  return null;
+}
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin(request)
+    await requireAdmin(request);
 
-    // Get all stats in parallel
     const [
-      totalAffiliates,
-      pendingAffiliates,
-      activeAffiliates,
+      totalOrders,
+      pendingOrders,
+      completedOrders,
+      failedOrders,
+      cancelledOrders,
+      processingOrders,
+      totalRevenueResult,
+      totalUsers,
+      recentOrders,
+    ] = await Promise.all([
+      db.order.count(),
+      db.order.count({ where: { status: 'PENDING' } }),
+      db.order.count({ where: { status: 'COMPLETED' } }),
+      db.order.count({ where: { status: 'FAILED' } }),
+      db.order.count({ where: { status: 'CANCELLED' } }),
+      db.order.count({ where: { status: 'PROCESSING' } }),
+      db.order.aggregate({
+        where: { paymentStatus: 'PAID' },
+        _sum: { total: true },
+      }),
+      db.user.count({
+        where: { deletedAt: null },
+      }),
+      db.order.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          orderNumber: true,
+          email: true,
+          status: true,
+          paymentStatus: true,
+          total: true,
+          currency: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    const totalRevenue = totalRevenueResult._sum.total || 0;
+
+    let affiliateData = { totalAffiliates: 0, pendingAffiliates: 0, activeAffiliates: 0, totalClicks: 0, totalCommission: 0 };
+    try {
+      const affiliates = await getAllAffiliates();
+      affiliateData = {
+        totalAffiliates: affiliates.length,
+        pendingAffiliates: affiliates.filter((a) => a.status === 'PENDING').length,
+        activeAffiliates: affiliates.filter((a) => a.status === 'ACTIVE').length,
+        totalClicks: affiliates.reduce((sum, a) => sum + a.clicks, 0),
+        totalCommission: affiliates.reduce((sum, a) => sum + a.commission, 0),
+      };
+    } catch {}
+
+    const walletBalance = await tryGetWalletBalance();
+
+    return successResponse({
       totalOrders,
       pendingOrders,
       completedOrders,
       totalRevenue,
-      pendingCommissions,
-      totalClicks,
-      totalConversions,
-    ] = await Promise.all([
-      // Total affiliates
-      db.affiliateProfile.count(),
-
-      // Pending affiliates
-      db.affiliateProfile.count({
-        where: { status: "PENDING" },
-      }),
-
-      // Active affiliates
-      db.affiliateProfile.count({
-        where: { status: "ACTIVE" },
-      }),
-
-      // Total orders
-      db.order.count(),
-
-      // Pending orders
-      db.order.count({
-        where: { status: "PENDING" },
-      }),
-
-      // Completed orders
-      db.order.count({
-        where: { status: "COMPLETED" },
-      }),
-
-      // Total revenue (sum of completed order totals)
-      db.order.aggregate({
-        where: { status: "COMPLETED" },
-        _sum: { total: true },
-      }),
-
-      // Pending commissions
-      db.commission.aggregate({
-        where: { status: "PENDING" },
-        _sum: { amount: true },
-      }),
-
-      // Total clicks
-      db.affiliateClick.count(),
-
-      // Total conversions
-      db.affiliateClick.count({
-        where: { converted: true },
-      }),
-    ])
-
-    const conversionRate = totalClicks > 0
-      ? (totalConversions / totalClicks) * 100
-      : 0
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        totalAffiliates,
-        pendingAffiliates,
-        activeAffiliates,
-        totalOrders,
-        pendingOrders,
-        completedOrders,
-        totalRevenue: totalRevenue?._sum?.total || 0,
-        pendingCommissions: pendingCommissions?._sum?.amount || 0,
-        totalClicks,
-        totalConversions,
-        conversionRate,
+      totalUsers,
+      ordersByStatus: {
+        PENDING: pendingOrders,
+        PROCESSING: processingOrders,
+        COMPLETED: completedOrders,
+        FAILED: failedOrders,
+        CANCELLED: cancelledOrders,
       },
-    })
+      recentOrders,
+      ...affiliateData,
+      walletBalance,
+      conversionRate:
+        affiliateData.totalClicks > 0
+          ? (totalOrders / affiliateData.totalClicks) * 100
+          : 0,
+      pendingCommissions: 0,
+    });
   } catch (error) {
-    console.error("Failed to fetch admin stats:", error)
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch stats" },
-      { status: 500 }
-    )
+    if (error instanceof AuthError) {
+      return errorResponse(error.message, error.statusCode);
+    }
+    console.error('Failed to fetch admin stats:', error);
+    return errorResponse('Failed to fetch stats', 500);
   }
 }

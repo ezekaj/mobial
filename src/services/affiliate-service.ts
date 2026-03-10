@@ -1,12 +1,39 @@
 import { db } from '@/lib/db';
 
-export async function getAffiliateByCode(code: string) {
+interface AffiliateProfile {
+  userId: string;
+  status: 'ACTIVE' | 'PENDING' | 'SUSPENDED';
+  commissionRate: number;
+  createdAt: string;
+}
+
+interface AffiliateStats {
+  clicks: number;
+  orders: number;
+  commission: number;
+}
+
+interface AffiliateWithDetails {
+  id: string;
+  code: string;
+  userId: string;
+  userName: string | null;
+  userEmail: string;
+  status: string;
+  commissionRate: number;
+  clicks: number;
+  orders: number;
+  commission: number;
+  createdAt: string;
+}
+
+export async function getAffiliateByCode(code: string): Promise<AffiliateProfile | null> {
   const config = await db.systemConfig.findUnique({
     where: { key: `affiliate:${code}` },
   });
   if (!config) return null;
   try {
-    return JSON.parse(config.value) as { status: string; userId: string };
+    return JSON.parse(config.value) as AffiliateProfile;
   } catch {
     return null;
   }
@@ -43,8 +70,229 @@ export async function trackClick(
     },
   });
 
+  const statsKey = `affiliate_stats:${affiliateCode}`;
+  const existing = await db.systemConfig.findUnique({ where: { key: statsKey } });
+  const stats: AffiliateStats = existing
+    ? JSON.parse(existing.value)
+    : { clicks: 0, orders: 0, commission: 0 };
+
+  stats.clicks += 1;
+
+  await db.systemConfig.upsert({
+    where: { key: statsKey },
+    update: { value: JSON.stringify(stats) },
+    create: {
+      key: statsKey,
+      value: JSON.stringify(stats),
+      description: `Stats for affiliate ${affiliateCode}`,
+    },
+  });
+
   return {
     clickId,
     targetUrl: `${baseUrl}/products?ref=${affiliateCode}`,
   };
+}
+
+export async function createAffiliate(
+  userId: string,
+  code: string,
+  commissionRate: number = 10
+): Promise<AffiliateProfile> {
+  const profile: AffiliateProfile = {
+    userId,
+    status: 'PENDING',
+    commissionRate,
+    createdAt: new Date().toISOString(),
+  };
+
+  await db.systemConfig.upsert({
+    where: { key: `affiliate:${code}` },
+    update: { value: JSON.stringify(profile) },
+    create: {
+      key: `affiliate:${code}`,
+      value: JSON.stringify(profile),
+      description: `Affiliate profile for code ${code}`,
+    },
+  });
+
+  await db.systemConfig.upsert({
+    where: { key: `affiliate_stats:${code}` },
+    update: {},
+    create: {
+      key: `affiliate_stats:${code}`,
+      value: JSON.stringify({ clicks: 0, orders: 0, commission: 0 }),
+      description: `Stats for affiliate ${code}`,
+    },
+  });
+
+  await db.systemConfig.upsert({
+    where: { key: `affiliate_user:${userId}` },
+    update: { value: code },
+    create: {
+      key: `affiliate_user:${userId}`,
+      value: code,
+      description: `Affiliate code mapping for user ${userId}`,
+    },
+  });
+
+  return profile;
+}
+
+export async function getAffiliateStats(userId: string): Promise<{
+  code: string | null;
+  profile: AffiliateProfile | null;
+  stats: AffiliateStats;
+}> {
+  const codeConfig = await db.systemConfig.findUnique({
+    where: { key: `affiliate_user:${userId}` },
+  });
+
+  if (!codeConfig) {
+    return { code: null, profile: null, stats: { clicks: 0, orders: 0, commission: 0 } };
+  }
+
+  const code = codeConfig.value;
+  const profile = await getAffiliateByCode(code);
+  const statsConfig = await db.systemConfig.findUnique({
+    where: { key: `affiliate_stats:${code}` },
+  });
+
+  const stats: AffiliateStats = statsConfig
+    ? JSON.parse(statsConfig.value)
+    : { clicks: 0, orders: 0, commission: 0 };
+
+  return { code, profile, stats };
+}
+
+export async function getAllAffiliates(filters?: {
+  status?: string;
+  search?: string;
+}): Promise<AffiliateWithDetails[]> {
+  const configs = await db.systemConfig.findMany({
+    where: {
+      key: { startsWith: 'affiliate:' },
+      NOT: {
+        key: { startsWith: 'affiliate_stats:' },
+      },
+    },
+  });
+
+  const affiliateConfigs = configs.filter(
+    (c) => !c.key.startsWith('affiliate_user:') && !c.key.startsWith('affiliate_stats:')
+  );
+
+  const affiliates: AffiliateWithDetails[] = [];
+
+  for (const config of affiliateConfigs) {
+    const code = config.key.replace('affiliate:', '');
+    const profile: AffiliateProfile = JSON.parse(config.value);
+
+    if (filters?.status && profile.status !== filters.status) continue;
+
+    const user = await db.user.findUnique({
+      where: { id: profile.userId },
+      select: { id: true, name: true, email: true },
+    });
+
+    if (!user) continue;
+
+    if (filters?.search) {
+      const search = filters.search.toLowerCase();
+      if (
+        !user.email.toLowerCase().includes(search) &&
+        !(user.name || '').toLowerCase().includes(search) &&
+        !code.toLowerCase().includes(search)
+      ) {
+        continue;
+      }
+    }
+
+    const statsConfig = await db.systemConfig.findUnique({
+      where: { key: `affiliate_stats:${code}` },
+    });
+    const stats: AffiliateStats = statsConfig
+      ? JSON.parse(statsConfig.value)
+      : { clicks: 0, orders: 0, commission: 0 };
+
+    affiliates.push({
+      id: config.id,
+      code,
+      userId: profile.userId,
+      userName: user.name,
+      userEmail: user.email,
+      status: profile.status,
+      commissionRate: profile.commissionRate,
+      clicks: stats.clicks,
+      orders: stats.orders,
+      commission: stats.commission,
+      createdAt: profile.createdAt,
+    });
+  }
+
+  return affiliates;
+}
+
+export async function updateAffiliateStatus(
+  code: string,
+  status: 'ACTIVE' | 'PENDING' | 'SUSPENDED'
+): Promise<AffiliateProfile | null> {
+  const config = await db.systemConfig.findUnique({
+    where: { key: `affiliate:${code}` },
+  });
+  if (!config) return null;
+
+  const profile: AffiliateProfile = JSON.parse(config.value);
+  profile.status = status;
+
+  await db.systemConfig.update({
+    where: { key: `affiliate:${code}` },
+    data: { value: JSON.stringify(profile) },
+  });
+
+  return profile;
+}
+
+export async function updateAffiliateCommissionRate(
+  code: string,
+  commissionRate: number
+): Promise<AffiliateProfile | null> {
+  const config = await db.systemConfig.findUnique({
+    where: { key: `affiliate:${code}` },
+  });
+  if (!config) return null;
+
+  const profile: AffiliateProfile = JSON.parse(config.value);
+  profile.commissionRate = commissionRate;
+
+  await db.systemConfig.update({
+    where: { key: `affiliate:${code}` },
+    data: { value: JSON.stringify(profile) },
+  });
+
+  return profile;
+}
+
+export async function recordAffiliateOrder(
+  code: string,
+  orderTotal: number
+): Promise<void> {
+  const profile = await getAffiliateByCode(code);
+  if (!profile || profile.status !== 'ACTIVE') return;
+
+  const commission = (orderTotal * profile.commissionRate) / 100;
+
+  const statsKey = `affiliate_stats:${code}`;
+  const existing = await db.systemConfig.findUnique({ where: { key: statsKey } });
+  const stats: AffiliateStats = existing
+    ? JSON.parse(existing.value)
+    : { clicks: 0, orders: 0, commission: 0 };
+
+  stats.orders += 1;
+  stats.commission += commission;
+
+  await db.systemConfig.update({
+    where: { key: statsKey },
+    data: { value: JSON.stringify(stats) },
+  });
 }

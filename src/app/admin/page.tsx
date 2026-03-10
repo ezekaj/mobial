@@ -21,6 +21,17 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 
+interface RecentOrder {
+  id: string
+  orderNumber: string
+  email: string
+  status: string
+  paymentStatus: string
+  total: number
+  currency: string
+  createdAt: string
+}
+
 interface DashboardStats {
   totalAffiliates: number
   pendingAffiliates: number
@@ -32,6 +43,10 @@ interface DashboardStats {
   pendingCommissions: number
   totalClicks: number
   conversionRate: number
+  totalUsers: number
+  walletBalance: number | null
+  recentOrders: RecentOrder[]
+  ordersByStatus: Record<string, number>
 }
 
 interface RecentActivity {
@@ -143,69 +158,28 @@ export default function AdminDashboardPage() {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem("token")
-      
-      // Fetch stats (we'll create this API)
+
       const statsResponse = await fetch("/api/admin/stats", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
       if (statsResponse.ok) {
         const data = await statsResponse.json()
-        setStats(data)
-      } else {
-        // Use mock data if API not available
-        setStats({
-          totalAffiliates: 45,
-          pendingAffiliates: 5,
-          activeAffiliates: 38,
-          totalOrders: 234,
-          pendingOrders: 12,
-          completedOrders: 215,
-          totalRevenue: 15678.90,
-          pendingCommissions: 1234.56,
-          totalClicks: 12345,
-          conversionRate: 3.2,
-        })
-      }
+        const statsData = data.data || data
+        setStats(statsData)
 
-      // Mock activities
-      setActivities([
-        {
-          id: "1",
-          type: "order",
-          message: "New order MBL-8X7Y2Z9A placed",
-          timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-          status: "PENDING",
-        },
-        {
-          id: "2",
-          type: "affiliate",
-          message: "New affiliate registration from john@example.com",
-          timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-          status: "PENDING",
-        },
-        {
-          id: "3",
-          type: "commission",
-          message: "Commission of $12.50 approved for AFFIL001",
-          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          status: "APPROVED",
-        },
-        {
-          id: "4",
-          type: "order",
-          message: "Order MBL-5N6M7K8L completed",
-          timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-          status: "COMPLETED",
-        },
-        {
-          id: "5",
-          type: "affiliate",
-          message: "Affiliate TECHGURU approved",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-          status: "ACTIVE",
-        },
-      ])
+        if (statsData.recentOrders?.length) {
+          setActivities(
+            statsData.recentOrders.map((order: RecentOrder) => ({
+              id: order.id,
+              type: "order" as const,
+              message: `Order ${order.orderNumber} - ${order.email} ($${order.total.toFixed(2)})`,
+              timestamp: order.createdAt,
+              status: order.status,
+            }))
+          )
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error)
     } finally {
@@ -242,34 +216,30 @@ export default function AdminDashboardPage() {
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
-          title="Total Affiliates"
-          value={stats?.totalAffiliates || 0}
-          description={`${stats?.pendingAffiliates || 0} pending approval`}
-          icon={Users}
-          href="/admin/affiliates"
-          trend={{ value: 12, isPositive: true }}
-        />
-        <StatsCard
           title="Total Orders"
           value={stats?.totalOrders || 0}
           description={`${stats?.pendingOrders || 0} pending`}
           icon={Package}
           href="/admin/orders"
-          trend={{ value: 8, isPositive: true }}
         />
         <StatsCard
           title="Total Revenue"
           value={`$${(stats?.totalRevenue || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
-          description="All time"
+          description="From paid orders"
           icon={DollarSign}
-          trend={{ value: 15, isPositive: true }}
         />
         <StatsCard
-          title="Conversion Rate"
-          value={`${(stats?.conversionRate || 0).toFixed(1)}%`}
-          description={`${(stats?.totalClicks || 0).toLocaleString()} total clicks`}
+          title="Total Users"
+          value={stats?.totalUsers || 0}
+          description={`${stats?.totalAffiliates || 0} affiliates`}
+          icon={Users}
+        />
+        <StatsCard
+          title="Affiliates"
+          value={stats?.totalAffiliates || 0}
+          description={`${stats?.pendingAffiliates || 0} pending approval`}
           icon={TrendingUp}
-          trend={{ value: 2.3, isPositive: true }}
+          href="/admin/affiliates"
         />
       </div>
 
