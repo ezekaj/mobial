@@ -17,10 +17,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TrustBadges } from "@/components/store/trust-badges"
 import { DestinationSearch } from "@/components/common/destination-search"
+import { OrganizationJsonLd, WebSiteJsonLd, BreadcrumbJsonLd } from "@/components/common/json-ld"
 import { regions } from "@/lib/regions"
 import { getProducts } from "@/services/product-service"
 import Link from "next/link"
 import { ProductsSection, CTASection, LazyReviewsSection } from "./home-client"
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://mobialo.eu"
 
 const STEPS = [
   {
@@ -97,6 +100,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary/20">
+      <OrganizationJsonLd baseUrl={BASE_URL} />
+      <WebSiteJsonLd baseUrl={BASE_URL} />
+      <BreadcrumbJsonLd baseUrl={BASE_URL} items={[{ name: "Home" }]} />
       <Header />
 
       <main className="flex-1">

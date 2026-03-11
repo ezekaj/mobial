@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 import { blogPosts, getBlogPost, getRelatedPosts, formatDate } from "@/lib/blog"
+import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/common/json-ld"
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://mobialo.eu"
 
 const CATEGORY_COLORS: Record<string, string> = {
   Travel: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -75,6 +78,22 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <ArticleJsonLd
+        title={post.title}
+        description={post.excerpt}
+        author={post.author}
+        publishedAt={post.publishedAt}
+        url={`${BASE_URL}/blog/${post.slug}`}
+        baseUrl={BASE_URL}
+      />
+      <BreadcrumbJsonLd
+        baseUrl={BASE_URL}
+        items={[
+          { name: "Home", url: "/" },
+          { name: "Blog", url: "/blog" },
+          { name: post.title },
+        ]}
+      />
       <Header />
 
       <main className="flex-1">

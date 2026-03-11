@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getCountryBySlug } from "@/lib/countries"
 import { CountryProductGrid } from "./product-grid"
+import { BreadcrumbJsonLd } from "@/components/common/json-ld"
 
 interface PageProps {
   params: Promise<{ country: string }>
@@ -76,8 +77,18 @@ export default async function CountryPage({ params }: PageProps) {
 
   const products = await getCountryProducts(country.code)
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://mobialo.eu"
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <BreadcrumbJsonLd
+        baseUrl={baseUrl}
+        items={[
+          { name: "Home", url: "/" },
+          { name: "Destinations", url: "/esim" },
+          { name: `eSIM for ${country.name}` },
+        ]}
+      />
       <Header />
 
       <main className="flex-1">

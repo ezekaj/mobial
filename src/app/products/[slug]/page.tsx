@@ -2,6 +2,9 @@ import { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getProductById, ProductWithDetails, getProducts } from "@/services/product-service"
 import { ProductDetailClient } from "./client"
+import { ProductJsonLd, BreadcrumbJsonLd } from "@/components/common/json-ld"
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://mobialo.eu"
 
 // Generate static params for popular products
 export async function generateStaticParams() {
@@ -36,14 +39,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title,
       description,
       type: "website",
-      images: [
-        {
-          url: "/og-product.png",
-          width: 1200,
-          height: 630,
-          alt: product.name,
-        },
-      ],
     },
     twitter: {
       card: "summary_large_image",
@@ -72,9 +67,20 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const filteredRelated = relatedProducts.filter(p => p.id !== product.id).slice(0, 3)
 
   return (
-    <ProductDetailClient
-      product={product}
-      relatedProducts={filteredRelated}
-    />
+    <>
+      <ProductJsonLd product={product} baseUrl={BASE_URL} />
+      <BreadcrumbJsonLd
+        baseUrl={BASE_URL}
+        items={[
+          { name: "Home", url: "/" },
+          { name: "Products", url: "/products" },
+          { name: product.name },
+        ]}
+      />
+      <ProductDetailClient
+        product={product}
+        relatedProducts={filteredRelated}
+      />
+    </>
   )
 }
