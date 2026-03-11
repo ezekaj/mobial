@@ -5,10 +5,14 @@ import { ProductDetailClient } from "./client"
 
 // Generate static params for popular products
 export async function generateStaticParams() {
-  const { products } = await getProducts({ limit: 50 })
-  return products.map((product) => ({
-    slug: product.slug,
-  }))
+  try {
+    const { products } = await getProducts({ limit: 50 })
+    return products.map((product) => ({
+      slug: product.slug,
+    }))
+  } catch {
+    return []
+  }
 }
 
 // Generate metadata for SEO
