@@ -1,23 +1,42 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(payload);
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+}
+
+function getTokenFromRequest(request: NextRequest): string | null {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+  const cookie = request.cookies.get('token');
+  return cookie?.value ?? null;
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // 1. Initial response
+
   const response = NextResponse.next();
 
-  // 2. Security Headers (Production Grade)
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com;
     style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https://api.mobimatter.com;
+    img-src 'self' blob: data: https://api.mobimatter.com https://mobimatterstorage.blob.core.windows.net https://api.qrserver.com;
     font-src 'self' data:;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
+    frame-src https://checkout.stripe.com https://js.stripe.com;
     frame-ancestors 'none';
     block-all-mixed-content;
     upgrade-insecure-requests;
@@ -31,28 +50,34 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   response.headers.set('X-XSS-Protection', '1; mode=block');
 
-  // 3. Authentication & Authorization for Restricted Routes
-  const isProtectedPath = pathname.startsWith('/admin') || 
+  const isProtectedPath = pathname.startsWith('/admin') ||
                           pathname.startsWith('/api/admin');
 
   if (isProtectedPath) {
-    const token = await getToken({ 
-      req: request, 
-      secret: process.env.NEXTAUTH_SECRET 
-    });
+    const rawToken = getTokenFromRequest(request);
 
-    if (!token) {
-      // Redirect to login if not authenticated
+    if (!rawToken) {
       const url = new URL('/login', request.url);
       url.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(url);
     }
 
-    // Role-based Access Control (RBAC)
-    const role = token.role as string;
+    const payload = decodeJwtPayload(rawToken);
 
-    // Admin-only paths
-    if ((pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) && role !== 'ADMIN') {
+    if (!payload) {
+      const url = new URL('/login', request.url);
+      url.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(url);
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (typeof payload.exp === 'number' && payload.exp < now) {
+      const url = new URL('/login', request.url);
+      url.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(url);
+    }
+
+    if (payload.role !== 'ADMIN') {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
@@ -62,12 +87,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for:
-     * - _next/static, _next/image (static files)
-     * - favicon.ico, logo.png, logo.svg (icons/images)
-     * - manifest.json (PWA)
-     */
     '/((?!_next/static|_next/image|favicon.ico|logo.png|logo.svg|manifest.json|api/health).*)',
   ],
 };
