@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { sendCartRecovery } from "@/services/email-service"
+import { logger } from "@/lib/logger"
+
+const log = logger.child("cron:cart-recovery")
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://mobialo.eu"
 
@@ -69,7 +72,7 @@ export async function GET(request: NextRequest) {
           failed++
         }
       } catch (error) {
-        console.error(`Failed to send recovery email to ${cart.email}:`, error)
+        log.errorWithException(`Failed to send recovery email to ${cart.email}`, error)
         failed++
       }
     }
@@ -83,7 +86,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("Cart recovery cron error:", error)
+    log.errorWithException("Cart recovery cron failed", error)
     return Response.json(
       { success: false, error: "Failed to process abandoned carts" },
       { status: 500 }

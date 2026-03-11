@@ -4,6 +4,9 @@ import {
   sendInstallationReminder,
   sendFeedbackRequest,
 } from "@/services/email-service"
+import { logger } from "@/lib/logger"
+
+const log = logger.child("cron:email-sequences")
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
@@ -116,7 +119,7 @@ export async function GET(request: NextRequest) {
 
     return Response.json({ success: true, data: results })
   } catch (error) {
-    console.error("Email sequences cron error:", error)
+    log.errorWithException("Email sequences cron failed", error)
     return Response.json(
       { success: false, error: "Failed to process email sequences" },
       { status: 500 }

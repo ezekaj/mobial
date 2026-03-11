@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server';
 import { syncProductsFromMobimatter } from '@/services/product-service';
 import { logAudit } from '@/lib/audit';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
+
+const log = logger.child('cron:sync-products');
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -66,7 +69,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Cron product sync failed:', error);
+    log.errorWithException('Product sync failed', error);
 
     await logAudit({
       action: 'product_sync',

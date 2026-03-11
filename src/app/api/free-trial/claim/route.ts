@@ -1,5 +1,8 @@
 import { NextRequest } from "next/server"
 import { claimTrial, hasClaimedTrial } from "@/services/trial-service"
+import { logger } from "@/lib/logger"
+
+const log = logger.child("api:free-trial")
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     return Response.json({ success: true, data: result.trial })
   } catch (error) {
-    console.error("Free trial claim error:", error)
+    log.errorWithException("Free trial claim failed", error)
     return Response.json(
       { success: false, error: "Failed to process trial claim" },
       { status: 500 }
