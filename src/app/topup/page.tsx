@@ -100,15 +100,23 @@ export default function TopupPage() {
 
       setUsage(usageData.data)
 
-      // Step 2: Fetch compatible top-up products
-      // Use the order to find the original product's country and provider
+      // Step 2: Fetch order details to find the product's family ID
       if (usageData.data.orderNumber) {
-        const productsRes = await fetch(
-          `/api/products?topup=true&limit=10&sortBy=price_asc`
-        )
-        const productsData = await productsRes.json()
-        if (productsData.success && productsData.data?.products) {
-          setProducts(productsData.data.products)
+        const orderRes = await fetch(`/api/orders/${usageData.data.orderNumber}`)
+        const orderData = await orderRes.json()
+        const familyId = orderData.success
+          ? orderData.data?.items?.[0]?.product?.productFamilyId
+          : null
+
+        if (familyId) {
+          // Fetch compatible add-on products by productFamilyId
+          const productsRes = await fetch(
+            `/api/products?category=esim_addon&productFamilyId=${familyId}&limit=10&sortBy=price_asc`
+          )
+          const productsData = await productsRes.json()
+          if (productsData.success && productsData.data?.products) {
+            setProducts(productsData.data.products)
+          }
         }
       }
 
