@@ -476,6 +476,40 @@ model Notification {
   @@index([createdAt])
 }
 
+// ==================== REVIEWS ====================
+
+model Review {
+  id            String   @id @default(cuid())
+
+  // Reviewer
+  orderId       String?  // Optional link to order for verification
+  userId        String?  // Optional link to user
+  name          String
+  email         String
+
+  // Review Content
+  rating        Int      // 1-5
+  title         String
+  text          String
+
+  // Context
+  destination   String?  // Country or region name
+  countryCode   String?  // ISO country code
+
+  // Status
+  verified      Boolean  @default(false)  // Verified purchase
+  approved      Boolean  @default(false)  // Admin approved
+
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([approved])
+  @@index([rating])
+  @@index([destination])
+  @@index([createdAt])
+}
+
 // ==================== RATE LIMITING ====================
 
 model RateLimitLog {

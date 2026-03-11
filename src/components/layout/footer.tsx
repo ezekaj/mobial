@@ -20,11 +20,16 @@ const footerLinks = {
     { name: "Top Up eSIM", href: "/topup" },
     { name: "Compatible Devices", href: "/compatible-devices" },
   ],
+  support: [
+    { name: "FAQ", href: "/faq" },
+    { name: "Troubleshooting", href: "/troubleshooting" },
+    { name: "Contact", href: "/contact" },
+    { name: "Installation Guide", href: "/guides/installation" },
+  ],
   company: [
     { name: "About Us", href: "/about" },
-    { name: "Contact", href: "/contact" },
-    { name: "FAQ", href: "/faq" },
     { name: "Blog", href: "/blog" },
+    { name: "Referral Program", href: "/referrals" },
   ],
   legal: [
     { name: "Privacy Policy", href: "/privacy" },
@@ -44,7 +49,7 @@ export function Footer() {
     <footer className="bg-muted/30 border-t">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-8">
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center space-x-2 mb-4">
@@ -81,8 +86,25 @@ export function Footer() {
             </ul>
           </div>
 
+          {/* Support Links */}
+          <div>
+            <h3 className="font-semibold mb-4">Support</h3>
+            <ul className="space-y-2">
+              {footerLinks.support.map((link) => (
+                <li key={link.name}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           {/* Company Links */}
-          <div className="lg:col-span-1">
+          <div>
             <h3 className="font-semibold mb-4">Company</h3>
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
