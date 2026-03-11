@@ -1,7 +1,3 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
 import {
   Globe,
   Zap,
@@ -10,26 +6,20 @@ import {
   ArrowRight,
   Smartphone,
   Wifi,
-  TrendingUp,
-  RefreshCw,
   BarChart3,
+  RefreshCw,
   Gift,
-  ChevronRight,
 } from "lucide-react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAuth } from "@/components/providers/auth-provider"
 import { TrustBadges } from "@/components/store/trust-badges"
-import { ReviewsSection } from "@/components/store/reviews-section"
 import { DestinationSearch } from "@/components/common/destination-search"
-import { CurrencySelector } from "@/components/common/currency-selector"
-import { useCurrency } from "@/contexts/currency-context"
 import { regions } from "@/lib/regions"
+import { getProducts } from "@/services/product-service"
 import Link from "next/link"
+import { ProductsSection, CTASection, LazyReviewsSection } from "./home-client"
 
 const STEPS = [
   {
@@ -49,56 +39,39 @@ const STEPS = [
   },
 ]
 
-const REGION_ICONS: Record<string, string> = {
-  europe: "EU",
-  asia: "AS",
-  americas: "AM",
-  "middle-east": "ME",
-  oceania: "OC",
-  africa: "AF",
-}
+export default async function HomePage() {
+  const [popularResult, latestResult] = await Promise.all([
+    getProducts({ sortBy: "price_asc", limit: 8 }),
+    getProducts({ sortBy: "createdAt", limit: 8 }),
+  ])
 
-interface Product {
-  id: string
-  name: string
-  slug: string
-  provider: string
-  price: number
-  dataAmount: number | null
-  validityDays: number | null
-  countries: string[]
-  networkType: string | null
-  topUpAvailable: boolean
-  providerLogo: string | null
-}
+  const popularProducts = popularResult.products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    provider: p.provider,
+    price: p.price,
+    dataAmount: p.dataAmount,
+    validityDays: p.validityDays,
+    countries: p.countries,
+    networkType: p.networkType,
+    topUpAvailable: p.topUpAvailable,
+    providerLogo: p.providerLogo,
+  }))
 
-export default function HomePage() {
-  const { openAuthModal } = useAuth()
-  const { formatPrice } = useCurrency()
-  const [popularProducts, setPopularProducts] = useState<Product[]>([])
-  const [latestProducts, setLatestProducts] = useState<Product[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const [popRes, latestRes] = await Promise.all([
-          fetch("/api/products?limit=8&sortBy=price_asc"),
-          fetch("/api/products?limit=8&sortBy=createdAt"),
-        ])
-        if (popRes.ok) {
-          const data = await popRes.json()
-          setPopularProducts(data.data?.products || [])
-        }
-        if (latestRes.ok) {
-          const data = await latestRes.json()
-          setLatestProducts(data.data?.products || [])
-        }
-      } catch {}
-      setIsLoading(false)
-    }
-    fetchProducts()
-  }, [])
+  const latestProducts = latestResult.products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    provider: p.provider,
+    price: p.price,
+    dataAmount: p.dataAmount,
+    validityDays: p.validityDays,
+    countries: p.countries,
+    networkType: p.networkType,
+    topUpAvailable: p.topUpAvailable,
+    providerLogo: p.providerLogo,
+  }))
 
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary/20">
@@ -114,15 +87,10 @@ export default function HomePage() {
           </div>
 
           <div className="container mx-auto px-4 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="max-w-4xl mx-auto space-y-8"
-            >
+            <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
                 <Star className="h-3 w-3 fill-current" />
-                Trusted by 50,000+ Travelers
+                Trusted eSIM Marketplace
               </div>
 
               <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1]">
@@ -135,7 +103,6 @@ export default function HomePage() {
                 No roaming fees. No physical SIMs. Instant activation.
               </p>
 
-              {/* Enhanced Search */}
               <DestinationSearch />
 
               {/* Region Quick Links */}
@@ -158,7 +125,7 @@ export default function HomePage() {
                 ))}
               </div>
               <TrustBadges />
-            </motion.div>
+            </div>
           </div>
         </section>
 
@@ -202,64 +169,11 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Live Product Offers */}
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <Badge className="bg-primary/10 text-primary border-0 px-4 py-1.5 text-xs font-black uppercase tracking-wider mb-3">
-                  <TrendingUp className="h-3 w-3 mr-1" /> Live Offers
-                </Badge>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight">
-                  eSIM Data Plans
-                </h2>
-              </div>
-              <div className="flex items-center gap-3">
-                <CurrencySelector />
-                <Button variant="outline" className="rounded-xl font-bold text-xs" asChild>
-                  <Link href="/products">
-                    View All <ArrowRight className="ml-1 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-
-            <Tabs defaultValue="popular" className="w-full">
-              <TabsList className="bg-muted/50 rounded-xl mb-6">
-                <TabsTrigger value="popular" className="rounded-lg font-bold text-xs">
-                  Most Popular
-                </TabsTrigger>
-                <TabsTrigger value="latest" className="rounded-lg font-bold text-xs">
-                  Latest Added
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="popular">
-                {isLoading ? (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <div key={i} className="h-48 rounded-2xl bg-muted animate-pulse" />
-                    ))}
-                  </div>
-                ) : (
-                  <ProductGrid products={popularProducts} formatPrice={formatPrice} />
-                )}
-              </TabsContent>
-
-              <TabsContent value="latest">
-                {isLoading ? (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <div key={i} className="h-48 rounded-2xl bg-muted animate-pulse" />
-                    ))}
-                  </div>
-                ) : (
-                  <ProductGrid products={latestProducts} formatPrice={formatPrice} />
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
-        </section>
+        {/* Product Offers (Client Component) */}
+        <ProductsSection
+          popularProducts={popularProducts}
+          latestProducts={latestProducts}
+        />
 
         {/* Features Grid */}
         <section className="py-24 bg-muted/30">
@@ -285,12 +199,8 @@ export default function HomePage() {
                   color: "text-primary",
                 },
               ].map((feature, i) => (
-                <motion.div
+                <div
                   key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
                   className="p-8 rounded-3xl bg-card border border-border/50 shadow-sm hover:shadow-xl transition-all group"
                 >
                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-muted group-hover:scale-110 transition-transform">
@@ -298,7 +208,7 @@ export default function HomePage() {
                   </div>
                   <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
                   <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
@@ -380,12 +290,7 @@ export default function HomePage() {
 
               <div className="flex-1 relative">
                 <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
-                <motion.div
-                  initial={{ rotate: 10, y: 20 }}
-                  whileInView={{ rotate: 0, y: 0 }}
-                  viewport={{ once: true }}
-                  className="relative bg-card border-[12px] border-muted rounded-[3rem] p-4 shadow-2xl max-w-[320px] mx-auto overflow-hidden"
-                >
+                <div className="relative bg-card border-[12px] border-muted rounded-[3rem] p-4 shadow-2xl max-w-[320px] mx-auto overflow-hidden">
                   <div className="bg-muted h-6 w-32 mx-auto rounded-full mb-8" />
                   <div className="space-y-6">
                     <div className="h-40 rounded-2xl bg-gradient-to-br from-primary to-blue-600 p-6 flex flex-col justify-between text-white">
@@ -405,13 +310,13 @@ export default function HomePage() {
                       <p className="font-bold">Device Compatible</p>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <ReviewsSection />
+        <LazyReviewsSection />
 
         {/* Referral Banner */}
         <section className="py-12">
@@ -441,100 +346,11 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section id="about" className="py-20">
-          <div className="container mx-auto px-4">
-            <div className="relative rounded-[3rem] bg-foreground text-background overflow-hidden p-12 md:p-24 text-center space-y-8">
-              <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-primary blur-[100px] opacity-20" />
-              <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-blue-500 blur-[100px] opacity-20" />
-
-              <h2 className="text-4xl md:text-6xl font-black tracking-tight relative z-10">
-                Ready for your next <br />
-                <span className="text-primary italic">Adventure?</span>
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto relative z-10">
-                Join thousands of travelers who save on roaming costs every day.
-                Instant connectivity is just a few clicks away.
-              </p>
-              <div className="flex flex-col sm:flex-row justify-center gap-4 relative z-10">
-                <Button size="lg" className="rounded-2xl px-12 h-16 text-xl font-black" asChild>
-                  <Link href="/products">Get your eSIM</Link>
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-2xl px-12 h-16 text-xl font-black border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all"
-                  onClick={() => openAuthModal("register")}
-                >
-                  Start Now
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* CTA Section (Client Component - needs auth) */}
+        <CTASection />
       </main>
 
       <Footer />
-    </div>
-  )
-}
-
-function ProductGrid({
-  products,
-  formatPrice,
-}: {
-  products: Product[]
-  formatPrice: (amount: number) => string
-}) {
-  if (products.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">No products available yet.</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {products.slice(0, 8).map((product) => (
-        <Link key={product.id} href={`/products/${product.slug || product.id}`}>
-          <Card className="group hover:shadow-xl transition-all border-border/50 h-full">
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <Badge variant="outline" className="text-[10px] font-bold">
-                  {product.provider}
-                </Badge>
-                {product.networkType && (
-                  <Badge className="bg-primary/10 text-primary border-0 text-[10px] font-black">
-                    {product.networkType}
-                  </Badge>
-                )}
-              </div>
-              <div>
-                <h3 className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors">
-                  {product.name}
-                </h3>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
-                  {product.dataAmount && (
-                    <span>
-                      {product.dataAmount >= 1
-                        ? `${product.dataAmount} GB`
-                        : `${product.dataAmount * 1000} MB`}
-                    </span>
-                  )}
-                  {product.validityDays && <span>{product.validityDays}d</span>}
-                </div>
-              </div>
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-xl font-black">{formatPrice(product.price)}</span>
-                <span className="text-xs font-bold text-primary group-hover:translate-x-1 transition-transform flex items-center">
-                  View <ChevronRight className="h-3 w-3 ml-0.5" />
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      ))}
     </div>
   )
 }

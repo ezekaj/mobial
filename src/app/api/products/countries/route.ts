@@ -20,10 +20,19 @@ export async function GET(request: NextRequest) {
   try {
     const countries = await getAvailableCountries();
 
-    return successResponse({
-      countries,
-      total: countries.length,
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: { countries, total: countries.length },
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching countries:', error);
     return errorResponse('Failed to fetch countries', 500);

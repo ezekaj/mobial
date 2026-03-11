@@ -1,8 +1,5 @@
-"use client"
-
 import Link from "next/link"
 import Image from "next/image"
-import { motion } from "framer-motion"
 import {
   Globe,
   Mail,
@@ -195,14 +192,14 @@ export function Footer() {
         {/* Bottom Footer */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground text-center sm:text-left">
-            © {new Date().getFullYear()} MobiaL. All rights reserved. Powered by MobiMatter.
+            &copy; {new Date().getFullYear()} MobiaL. All rights reserved. Powered by MobiMatter.
           </p>
           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
             <div className="flex items-center space-x-1">
               <Globe className="h-4 w-4" />
               <span>Worldwide Coverage</span>
             </div>
-            <span className="hidden sm:inline">•</span>
+            <span className="hidden sm:inline">&bull;</span>
             <div className="flex items-center space-x-1">
               <Mail className="h-4 w-4" />
               <a href="mailto:support@mobial.com" className="hover:text-primary transition-colors">

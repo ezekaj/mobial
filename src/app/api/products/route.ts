@@ -97,13 +97,32 @@ export async function GET(request: NextRequest) {
     if (sortBy === 'createdAt') orderBy = { createdAt: 'desc' };
     if (sortBy === 'rank') orderBy = { penalizedRank: 'desc' };
 
-    // Execute Queries
+    // Execute Queries — select only fields needed for list views
     const [products, total] = await Promise.all([
       db.product.findMany({
         where,
         orderBy,
         take: limit,
         skip: offset,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          provider: true,
+          price: true,
+          dataAmount: true,
+          dataUnit: true,
+          validityDays: true,
+          countries: true,
+          regions: true,
+          providerLogo: true,
+          speedInfo: true,
+          networkType: true,
+          isActive: true,
+          topUpAvailable: true,
+          penalizedRank: true,
+          category: true,
+        },
       }),
       db.product.count({ where })
     ]);
@@ -113,19 +132,29 @@ export async function GET(request: NextRequest) {
       ...p,
       countries: p.countries ? JSON.parse(p.countries) : [],
       regions: p.regions ? JSON.parse(p.regions) : [],
-      features: p.features ? JSON.parse(p.features) : [],
-      tags: p.tags ? JSON.parse(p.tags) : [],
     }));
 
-    return successResponse({
-      products: formattedProducts,
-      pagination: {
-        total,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
-      },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: {
+          products: formattedProducts,
+          pagination: {
+            total,
+            limit,
+            offset,
+            hasMore: offset + limit < total,
+          },
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching products from DB:', error);
     return errorResponse('Failed to fetch products', 500);

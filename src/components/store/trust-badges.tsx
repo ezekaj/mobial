@@ -1,6 +1,3 @@
-"use client"
-
-import { motion } from "framer-motion"
 import { Globe, Star, Zap, ShieldCheck, Headphones } from "lucide-react"
 
 const BADGES = [
@@ -33,12 +30,7 @@ const BADGES = [
 
 export function TrustBadges() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.3 }}
-      className="flex flex-wrap justify-center gap-4 md:gap-8"
-    >
+    <div className="flex flex-wrap justify-center gap-4 md:gap-8 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300">
       {BADGES.map((badge, i) => (
         <div
           key={i}
@@ -50,6 +42,6 @@ export function TrustBadges() {
           </span>
         </div>
       ))}
-    </motion.div>
+    </div>
   )
 }

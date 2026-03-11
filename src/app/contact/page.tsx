@@ -1,12 +1,7 @@
-"use client"
-
-import { useState, FormEvent } from "react"
-import { motion } from "framer-motion"
 import {
   Mail,
   Clock,
   HelpCircle,
-  Send,
   ArrowRight,
   MessageSquare,
 } from "lucide-react"
@@ -14,55 +9,11 @@ import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
 import Link from "next/link"
+import { ContactForm } from "./contact-form"
 
 export default function ContactPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    const formData = new FormData(e.currentTarget)
-    const data = {
-      name: formData.get("name") as string,
-      email: formData.get("email") as string,
-      subject: formData.get("subject") as string,
-      message: formData.get("message") as string,
-    }
-
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      })
-
-      const result = await res.json()
-
-      if (res.ok && result.success) {
-        toast.success("Message sent!", {
-          description: "We'll get back to you within 24 hours.",
-        })
-        ;(e.target as HTMLFormElement).reset()
-      } else {
-        toast.error("Failed to send message", {
-          description: result.error || "Please try again later.",
-        })
-      }
-    } catch {
-      toast.error("Failed to send message", {
-        description: "Please check your connection and try again.",
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -76,12 +27,7 @@ export default function ContactPage() {
           </div>
 
           <div className="container mx-auto px-4 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="max-w-3xl mx-auto space-y-6"
-            >
+            <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <Badge className="bg-primary/10 text-primary border-0 px-4 py-1.5 text-xs font-black uppercase">
                 Get in Touch
               </Badge>
@@ -91,7 +37,7 @@ export default function ContactPage() {
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 Have a question or need help? We&apos;re here for you.
               </p>
-            </motion.div>
+            </div>
           </div>
         </section>
 
@@ -99,108 +45,13 @@ export default function ContactPage() {
         <section className="py-12">
           <div className="container mx-auto px-4 max-w-5xl">
             <div className="grid lg:grid-cols-5 gap-10">
-              {/* Contact Form */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="lg:col-span-3"
-              >
-                <Card className="border-border/50">
-                  <CardContent className="p-8">
-                    <h2 className="text-2xl font-bold mb-6">
-                      Send us a message
-                    </h2>
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                      <div className="grid sm:grid-cols-2 gap-5">
-                        <div className="space-y-2">
-                          <label
-                            htmlFor="name"
-                            className="text-sm font-medium"
-                          >
-                            Name
-                          </label>
-                          <Input
-                            id="name"
-                            name="name"
-                            placeholder="Your name"
-                            required
-                            className="h-12 rounded-xl bg-muted/30"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label
-                            htmlFor="email"
-                            className="text-sm font-medium"
-                          >
-                            Email
-                          </label>
-                          <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            placeholder="you@example.com"
-                            required
-                            className="h-12 rounded-xl bg-muted/30"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label
-                          htmlFor="subject"
-                          className="text-sm font-medium"
-                        >
-                          Subject
-                        </label>
-                        <Input
-                          id="subject"
-                          name="subject"
-                          placeholder="What is this about?"
-                          required
-                          className="h-12 rounded-xl bg-muted/30"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label
-                          htmlFor="message"
-                          className="text-sm font-medium"
-                        >
-                          Message
-                        </label>
-                        <Textarea
-                          id="message"
-                          name="message"
-                          placeholder="Tell us how we can help..."
-                          required
-                          className="min-h-[150px] rounded-xl bg-muted/30"
-                        />
-                      </div>
-                      <Button
-                        type="submit"
-                        size="lg"
-                        className="w-full rounded-2xl h-14 text-lg font-bold"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          "Sending..."
-                        ) : (
-                          <>
-                            Send Message <Send className="ml-2 h-5 w-5" />
-                          </>
-                        )}
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              {/* Contact Form (Client Component) */}
+              <div className="lg:col-span-3">
+                <ContactForm />
+              </div>
 
-              {/* Contact Info */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="lg:col-span-2 space-y-6"
-              >
+              {/* Contact Info (Server-rendered) */}
+              <div className="lg:col-span-2 space-y-6">
                 <Card className="border-border/50">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
@@ -296,7 +147,7 @@ export default function ContactPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
             </div>
           </div>
         </section>

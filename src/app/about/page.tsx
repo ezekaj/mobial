@@ -1,6 +1,3 @@
-"use client"
-
-import { motion } from "framer-motion"
 import {
   Globe,
   Zap,
@@ -10,7 +7,6 @@ import {
   QrCode,
   CreditCard,
   Wifi,
-  CheckCircle2,
 } from "lucide-react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
@@ -86,12 +82,7 @@ export default function AboutPage() {
           </div>
 
           <div className="container mx-auto px-4 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="max-w-3xl mx-auto space-y-6"
-            >
+            <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <Badge className="bg-primary/10 text-primary border-0 px-4 py-1.5 text-xs font-black uppercase">
                 Our Story
               </Badge>
@@ -103,19 +94,14 @@ export default function AboutPage() {
                 affordable, and instant. No more hunting for local SIM cards or
                 paying outrageous roaming fees.
               </p>
-            </motion.div>
+            </div>
           </div>
         </section>
 
         {/* What We Do */}
         <section className="py-16 bg-muted/30">
           <div className="container mx-auto px-4 max-w-4xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center space-y-6"
-            >
+            <div className="text-center space-y-6">
               <h2 className="text-3xl md:text-4xl font-black tracking-tight">
                 What We Do
               </h2>
@@ -133,24 +119,17 @@ export default function AboutPage() {
                   { value: "24/7", label: "Support" },
                   { value: "< 2min", label: "Activation" },
                 ].map((stat, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.1 }}
-                    className="text-center"
-                  >
+                  <div key={i} className="text-center">
                     <p className="text-3xl md:text-4xl font-black text-primary">
                       {stat.value}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
                       {stat.label}
                     </p>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           </div>
         </section>
 
@@ -168,13 +147,7 @@ export default function AboutPage() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
               {values.map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                >
+                <div key={i}>
                   <Card className="h-full border-border/50 hover:shadow-lg hover:border-primary/20 transition-all group">
                     <CardContent className="p-6 text-center">
                       <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-muted mx-auto group-hover:scale-110 transition-transform">
@@ -186,7 +159,7 @@ export default function AboutPage() {
                       </p>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
@@ -206,14 +179,7 @@ export default function AboutPage() {
 
             <div className="grid md:grid-cols-3 gap-8">
               {steps.map((step, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.15 }}
-                  className="text-center relative"
-                >
+                <div key={i} className="text-center relative">
                   <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-6 text-2xl font-black">
                     {i + 1}
                   </div>
@@ -225,7 +191,7 @@ export default function AboutPage() {
                   <p className="text-muted-foreground text-sm leading-relaxed">
                     {step.description}
                   </p>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
@@ -234,12 +200,7 @@ export default function AboutPage() {
         {/* CTA */}
         <section className="py-20">
           <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="relative rounded-3xl bg-foreground text-background overflow-hidden p-12 md:p-20 text-center"
-            >
+            <div className="relative rounded-3xl bg-foreground text-background overflow-hidden p-12 md:p-20 text-center">
               <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-72 h-72 bg-primary blur-[100px] opacity-20" />
               <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-72 h-72 bg-blue-500 blur-[100px] opacity-20" />
 
@@ -271,7 +232,7 @@ export default function AboutPage() {
                   </Button>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </section>
       </main>

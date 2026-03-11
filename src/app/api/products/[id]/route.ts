@@ -31,7 +31,16 @@ export async function GET(
       return errorResponse('Product not found', 404);
     }
 
-    return successResponse({ product });
+    return new Response(
+      JSON.stringify({ success: true, data: { product } }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching product:', error);
     return errorResponse('Failed to fetch product', 500);

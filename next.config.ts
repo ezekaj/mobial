@@ -6,6 +6,9 @@ const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
   images: {
     remotePatterns: [
       {
