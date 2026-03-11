@@ -14,6 +14,7 @@ import { CompareProvider } from "@/contexts/compare-context"
 import { CompareBar, CompareDrawer } from "@/components/store/compare-drawer"
 import { ChatWidget } from "@/components/common/chat-widget"
 import { NotificationPrompt } from "@/components/common/notification-prompt"
+import { InstallPrompt } from "@/components/common/install-prompt"
 import { MonitoringProvider } from "@/components/providers/monitoring-provider"
 
 const inter = Inter({
@@ -106,6 +107,7 @@ export default async function RootLayout({
                         <CompareDrawer />
                         <ChatWidget />
                         <NotificationPrompt />
+                        <InstallPrompt />
                         <Toaster position="top-center" expand={true} richColors />
                       </MonitoringProvider>
                     </CompareProvider>
