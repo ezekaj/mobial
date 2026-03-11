@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { useQuery } from "@tanstack/react-query"
 import {
   ShoppingCart,
   ArrowLeft,
@@ -15,6 +14,7 @@ import {
   AlertCircle,
   Tag,
   X,
+  Zap,
 } from "lucide-react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
@@ -100,6 +100,30 @@ export default function CheckoutPage() {
       router.push("/products")
     }
   }, [items.length, router])
+
+  // Save abandoned cart when email is provided
+  useEffect(() => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || items.length === 0) return
+
+    const timeout = setTimeout(() => {
+      fetch("/api/cart-recovery", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          cartItems: items.map((i) => ({
+            productId: i.productId,
+            name: i.name,
+            price: i.price,
+            quantity: i.quantity,
+          })),
+          totalAmount: total,
+        }),
+      }).catch(() => {})
+    }, 2000) // Debounce 2 seconds after email entry
+
+    return () => clearTimeout(timeout)
+  }, [email, items, total])
 
   // Validate affiliate code
   const handleValidateCode = async () => {
@@ -367,18 +391,26 @@ export default function CheckoutPage() {
                   )}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground mt-2">
-                  You will be securely redirected to Stripe to complete your payment.
+                  You&apos;ll receive your eSIM QR code by email within 2 minutes of payment.
                 </p>
 
                 {/* Trust Signals */}
-                <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Shield className="h-4 w-4 text-primary" />
-                    <span>Secure checkout</span>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                    <Shield className="h-4 w-4 text-blue-500 shrink-0" />
+                    <span className="font-medium">Secure payment via Stripe</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Check className="h-4 w-4 text-primary" />
-                    <span>Instant delivery</span>
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                    <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                    <span className="font-medium">eSIM in ~2 minutes</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                    <Zap className="h-4 w-4 text-amber-500 shrink-0" />
+                    <span className="font-medium">No account required</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                    <CreditCard className="h-4 w-4 text-primary shrink-0" />
+                    <span className="font-medium">Money-back guarantee</span>
                   </div>
                 </div>
               </motion.div>

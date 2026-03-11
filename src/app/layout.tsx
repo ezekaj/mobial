@@ -10,6 +10,8 @@ import { ReactQueryProvider } from "@/components/providers/react-query-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { CartProvider } from "@/contexts/cart-context"
 import { CurrencyProvider } from "@/contexts/currency-context"
+import { CompareProvider } from "@/contexts/compare-context"
+import { CompareBar, CompareDrawer } from "@/components/store/compare-drawer"
 import { NotificationPrompt } from "@/components/common/notification-prompt"
 import { MonitoringProvider } from "@/components/providers/monitoring-provider"
 
@@ -96,11 +98,15 @@ export default async function RootLayout({
               >
                 <CurrencyProvider>
                   <CartProvider>
-                    <MonitoringProvider>
-                      {children}
-                      <NotificationPrompt />
-                      <Toaster position="top-center" expand={true} richColors />
-                    </MonitoringProvider>
+                    <CompareProvider>
+                      <MonitoringProvider>
+                        {children}
+                        <CompareBar />
+                        <CompareDrawer />
+                        <NotificationPrompt />
+                        <Toaster position="top-center" expand={true} richColors />
+                      </MonitoringProvider>
+                    </CompareProvider>
                   </CartProvider>
                 </CurrencyProvider>
               </ThemeProvider>

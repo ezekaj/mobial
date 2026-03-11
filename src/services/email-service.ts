@@ -217,6 +217,72 @@ export async function sendEmailVerification(
   }
 }
 
+export async function sendCartRecovery(
+  email: string,
+  items: Array<{ name: string; price: number; quantity: number }>,
+  totalAmount: number,
+  recoveryUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const itemRows = items
+      .map(
+        (item) => `
+        <tr>
+          <td style="padding:8px 0;color:#e5e7eb;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.06);">
+            ${item.name}${item.quantity > 1 ? ` (x${item.quantity})` : ''}
+          </td>
+          <td style="padding:8px 0;color:#e5e7eb;font-size:14px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.06);">
+            $${(item.price * item.quantity).toFixed(2)}
+          </td>
+        </tr>`
+      )
+      .join('');
+
+    const html = layout(`
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#ffffff;">You left something behind</h1>
+      <p style="margin:0 0 24px;font-size:14px;color:#9ca3af;line-height:1.6;">
+        Looks like you were exploring eSIM plans but didn't complete your purchase.
+        Your cart is still waiting for you.
+      </p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+        style="margin:0 0 24px;background:rgba(255,255,255,0.03);border-radius:12px;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:12px 16px 8px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid rgba(255,255,255,0.08);">Plan</th>
+            <th style="text-align:right;padding:12px 16px 8px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid rgba(255,255,255,0.08);">Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemRows}
+          <tr>
+            <td style="padding:12px 16px 0;font-size:16px;font-weight:700;color:#ffffff;">Total</td>
+            <td style="padding:12px 16px 0;font-size:16px;font-weight:700;color:#4da6e8;text-align:right;">$${totalAmount.toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      ${button(recoveryUrl, 'Complete Your Purchase')}
+
+      <p style="margin:0;font-size:12px;color:#6b7280;text-align:center;">
+        Your eSIM will be delivered instantly via email after purchase.
+      </p>
+    `);
+
+    const result = await sendEmail({
+      to: email,
+      subject: 'You left items in your cart - MobiaL',
+      html,
+    });
+
+    return { success: result.success, error: result.error };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to send cart recovery email';
+    console.error('[EmailService] sendCartRecovery error:', message);
+    return { success: false, error: message };
+  }
+}
+
 export async function sendWelcome(
   email: string,
   name: string

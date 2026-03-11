@@ -661,3 +661,31 @@ model AnalyticsEvent {
   @@index([createdAt])
   @@index([name, createdAt])
 }
+
+// ==================== ABANDONED CART RECOVERY ====================
+
+model AbandonedCart {
+  id              String    @id @default(cuid())
+
+  // Customer
+  email           String
+  sessionId       String?
+
+  // Cart contents
+  cartItems       String    // JSON array of cart items
+  totalAmount     Float
+
+  // Recovery tracking
+  reminderSentAt  DateTime?
+  recoveredAt     DateTime?
+  recoveryToken   String?   @unique // Token for direct checkout link
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([email])
+  @@index([reminderSentAt])
+  @@index([createdAt])
+  @@index([recoveryToken])
+}

@@ -57,14 +57,23 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     notFound()
   }
 
-  // Get related products
-  const { products: relatedProducts } = await getProducts({
-    provider: product.provider,
-    limit: 4,
-  })
+  // Get related products: same provider + same country for broader recommendations
+  const [providerResults, countryResults] = await Promise.all([
+    getProducts({ provider: product.provider, limit: 4 }),
+    product.countries[0]
+      ? getProducts({ country: product.countries[0], limit: 6 })
+      : Promise.resolve({ products: [] } as { products: ProductWithDetails[] }),
+  ])
 
-  // Filter out current product
-  const filteredRelated = relatedProducts.filter(p => p.id !== product.id).slice(0, 3)
+  // Same provider, different plans
+  const filteredRelated = providerResults.products
+    .filter(p => p.id !== product.id)
+    .slice(0, 3)
+
+  // Same country, different providers (for "Other plans for this destination")
+  const countryRelated = countryResults.products
+    .filter(p => p.id !== product.id && p.provider !== product.provider)
+    .slice(0, 3)
 
   return (
     <>
@@ -80,6 +89,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <ProductDetailClient
         product={product}
         relatedProducts={filteredRelated}
+        countryRelatedProducts={countryRelated}
       />
     </>
   )

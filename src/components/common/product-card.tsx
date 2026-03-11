@@ -29,6 +29,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { useCurrency } from "@/contexts/currency-context"
+import { useCompare } from "@/contexts/compare-context"
 
 interface Network {
   networkName: string
@@ -57,6 +58,10 @@ interface ProductCardProps {
     tags?: Array<{item: string; color?: string}> | string | null
     providerLogo?: string | null
     speedInfo?: string | null
+    supportsHotspot?: boolean
+    supportsCalls?: boolean
+    supportsSms?: boolean
+    networkType?: string | null
   }
   onBuy?: (productId: string) => void
   showLink?: boolean
@@ -82,7 +87,9 @@ function getTagColorClasses(color?: string): string {
 
 export function ProductCard({ product, onBuy, showLink = true, className }: ProductCardProps) {
   const { formatPrice } = useCurrency()
+  const { toggleItem, isInCompare, isFull } = useCompare()
   const networks: Network[] = product.networks ? JSON.parse(product.networks) : []
+  const inCompare = isInCompare(product.id)
   const has5G = product.is5G || networks.some(n => n.generation?.includes('5G'))
 
   const parsedTags: Array<{item: string; color?: string}> = (() => {
@@ -181,25 +188,63 @@ export function ProductCard({ product, onBuy, showLink = true, className }: Prod
         </div>
       </CardContent>
 
-      <CardFooter className="p-6 pt-0 flex items-center justify-between mt-auto bg-white/[0.02]">
-        <div className="flex flex-col">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total Price</p>
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-black text-white">
-              {formatPrice(product.price)}
-            </span>
-            <span className="text-[10px] font-mono text-muted-foreground">
-              / {formatPrice(product.price / (product.validityDays || 1))}d
-            </span>
+      <CardFooter className="p-6 pt-0 flex flex-col gap-3 mt-auto bg-white/[0.02]">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex flex-col">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total Price</p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-black text-white">
+                {formatPrice(product.price)}
+              </span>
+              <span className="text-[10px] font-mono text-muted-foreground">
+                / {formatPrice(product.price / (product.validityDays || 1))}d
+              </span>
+            </div>
           </div>
+
+          <Button
+            onClick={(e) => { e.preventDefault(); onBuy?.(product.id); }}
+            className="rounded-xl px-6 font-black uppercase tracking-widest text-[11px] shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all h-11 bg-primary text-primary-foreground"
+          >
+            Select Plan
+          </Button>
         </div>
-        
-        <Button 
-          onClick={(e) => { e.preventDefault(); onBuy?.(product.id); }}
-          className="rounded-xl px-6 font-black uppercase tracking-widest text-[11px] shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all h-11 bg-primary text-primary-foreground"
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            const countries = (() => {
+              if (!product.countries) return []
+              if (Array.isArray(product.countries)) return product.countries
+              try { return JSON.parse(product.countries) } catch { return [] }
+            })()
+            toggleItem({
+              id: product.id,
+              name: product.name,
+              provider: product.provider,
+              price: product.price,
+              originalPrice: product.originalPrice,
+              dataAmount: product.dataAmount,
+              dataUnit: product.dataUnit,
+              validityDays: product.validityDays,
+              isUnlimited: product.isUnlimited,
+              supportsHotspot: product.supportsHotspot,
+              supportsCalls: product.supportsCalls,
+              supportsSms: product.supportsSms,
+              countries,
+              networkType: product.networkType,
+              slug: product.slug || product.id,
+            })
+          }}
+          disabled={!inCompare && isFull}
+          className={cn(
+            "w-full text-[10px] font-bold uppercase tracking-widest py-1.5 rounded-lg border transition-all",
+            inCompare
+              ? "border-primary/30 bg-primary/10 text-primary"
+              : "border-white/5 text-muted-foreground hover:border-white/10 hover:text-foreground disabled:opacity-30"
+          )}
         >
-          Select Plan
-        </Button>
+          {inCompare ? "✓ In Comparison" : "Compare"}
+        </button>
       </CardFooter>
     </Card>
   )

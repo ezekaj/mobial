@@ -39,9 +39,10 @@ import { ProductWithDetails } from "@/services/product-service"
 interface ProductDetailClientProps {
   product: ProductWithDetails
   relatedProducts: ProductWithDetails[]
+  countryRelatedProducts?: ProductWithDetails[]
 }
 
-export function ProductDetailClient({ product, relatedProducts }: ProductDetailClientProps) {
+export function ProductDetailClient({ product, relatedProducts, countryRelatedProducts = [] }: ProductDetailClientProps) {
   const router = useRouter()
   const { addItem, isInCart } = useCart()
   const { formatPrice } = useCurrency()
@@ -360,7 +361,12 @@ export function ProductDetailClient({ product, relatedProducts }: ProductDetailC
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">One-time payment</p>
+                    {product.validityDays && product.validityDays > 0 && (
+                      <p className="text-primary font-semibold mt-1">
+                        {formatPrice(product.price / product.validityDays)}/day
+                      </p>
+                    )}
+                    <p className="text-sm text-muted-foreground mt-1">One-time payment, no hidden fees</p>
                   </div>
 
                   <Separator />
@@ -413,18 +419,26 @@ export function ProductDetailClient({ product, relatedProducts }: ProductDetailC
                   </div>
 
                   {/* Trust Signals */}
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-primary" />
-                      <span>Instant email delivery</span>
+                  <div className="p-4 rounded-xl bg-muted/50 space-y-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Zap className="h-4 w-4 text-emerald-500 shrink-0" />
+                      <span className="font-medium">Ready in ~2 minutes</span>
+                      <span className="text-muted-foreground">— delivered to your email</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-primary" />
-                      <span>24/7 customer support</span>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Shield className="h-4 w-4 text-blue-500 shrink-0" />
+                      <span className="font-medium">Secure payment</span>
+                      <span className="text-muted-foreground">— powered by Stripe</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-primary" />
-                      <span>Easy QR code activation</span>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Check className="h-4 w-4 text-primary shrink-0" />
+                      <span className="font-medium">Easy QR code activation</span>
+                      <span className="text-muted-foreground">— no physical SIM needed</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <RefreshCw className="h-4 w-4 text-amber-500 shrink-0" />
+                      <span className="font-medium">Money-back guarantee</span>
+                      <span className="text-muted-foreground">— if not activated</span>
                     </div>
                   </div>
                 </CardContent>
@@ -451,6 +465,38 @@ export function ProductDetailClient({ product, relatedProducts }: ProductDetailC
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Network Info */}
+              {product.networks && (() => {
+                try {
+                  const networkList: string[] = JSON.parse(product.networks)
+                  if (networkList.length === 0) return null
+                  return (
+                    <Card>
+                      <CardContent className="p-6">
+                        <h3 className="font-semibold flex items-center gap-2 mb-4">
+                          <Wifi className="h-5 w-5 text-primary" />
+                          Local Networks
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {networkList.slice(0, 8).map((network) => (
+                            <Badge key={network} variant="secondary" className="text-xs">
+                              {network}
+                            </Badge>
+                          ))}
+                          {networkList.length > 8 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{networkList.length - 8} more
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                } catch {
+                  return null
+                }
+              })()}
             </motion.div>
           </div>
 
@@ -537,12 +583,52 @@ export function ProductDetailClient({ product, relatedProducts }: ProductDetailC
             </Tabs>
           </div>
 
-          {/* Related Products */}
+          {/* Related Products — Same Provider */}
           {relatedProducts.length > 0 && (
             <div className="mt-16">
-              <h2 className="text-2xl font-bold mb-6">Similar Plans from {product.provider}</h2>
+              <h2 className="text-2xl font-bold mb-6">More Plans from {product.provider}</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {relatedProducts.map((relatedProduct) => (
+                  <ProductCard
+                    key={relatedProduct.id}
+                    product={{
+                      id: relatedProduct.id,
+                      name: relatedProduct.name,
+                      provider: relatedProduct.provider,
+                      dataAmount: relatedProduct.dataAmount,
+                      dataUnit: relatedProduct.dataUnit,
+                      validityDays: relatedProduct.validityDays,
+                      countries: JSON.stringify(relatedProduct.countries),
+                      price: relatedProduct.price,
+                      originalPrice: relatedProduct.originalPrice,
+                      isUnlimited: relatedProduct.isUnlimited,
+                    }}
+                    onBuy={() => {
+                      addItem({
+                        productId: relatedProduct.id,
+                        name: relatedProduct.name,
+                        provider: relatedProduct.provider,
+                        price: relatedProduct.price,
+                        originalPrice: relatedProduct.originalPrice,
+                        dataAmount: relatedProduct.dataAmount,
+                        dataUnit: relatedProduct.dataUnit,
+                        validityDays: relatedProduct.validityDays,
+                      })
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Related Products — Same Destination, Different Providers */}
+          {countryRelatedProducts.length > 0 && (
+            <div className="mt-12">
+              <h2 className="text-2xl font-bold mb-6">
+                Other Plans for {product.countries[0] || "This Destination"}
+              </h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {countryRelatedProducts.map((relatedProduct) => (
                   <ProductCard
                     key={relatedProduct.id}
                     product={{
