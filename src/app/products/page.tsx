@@ -44,6 +44,13 @@ interface Product {
   isUnlimited: boolean
   networks?: string
   bestFitReason?: string
+  is5G?: boolean
+  tags?: Array<{item: string; color?: string}>
+  providerLogo?: string | null
+  speedInfo?: string | null
+  activationPolicy?: string | null
+  topUpAvailable?: boolean
+  supportsCalls?: boolean
 }
 
 interface ProductsResponse {
@@ -72,7 +79,7 @@ async function fetchProducts(params: {
   if (params.country) searchParams.set("country", params.country)
   if (params.region) searchParams.set("region", params.region)
   if (params.search) searchParams.set("search", params.search)
-  if (params.sortBy) searchParams.set("sortBy", params.sortBy)
+  searchParams.set("sortBy", params.sortBy || "rank")
   searchParams.set("limit", (params.limit || 50).toString())
   searchParams.set("offset", (params.offset || 0).toString())
 
@@ -90,6 +97,9 @@ export default function ProductsPage() {
   const [usageType, setUsageType] = useState<"light" | "balanced" | "heavy">("balanced")
   const [search, setSearch] = useState(searchParams.get('search') || "")
   const [debouncedSearch, setDebouncedSearch] = useState(search)
+  const [show5GOnly, setShow5GOnly] = useState(false)
+  const [showUnlimitedOnly, setShowUnlimitedOnly] = useState(false)
+  const [showCallsOnly, setShowCallsOnly] = useState(false)
 
   const country = searchParams.get('country')
   const region = searchParams.get('region')
@@ -133,8 +143,13 @@ export default function ProductsPage() {
       if (pricePerDay < 1) score += 20
 
       return { ...p, score, displayReason: reason }
+    }).filter(p => {
+      if (show5GOnly && !p.is5G) return false
+      if (showUnlimitedOnly && !p.isUnlimited) return false
+      if (showCallsOnly && !p.supportsCalls) return false
+      return true
     }).sort((a, b) => b.score - a.score)
-  }, [products, duration, usageType])
+  }, [products, duration, usageType, show5GOnly, showUnlimitedOnly, showCallsOnly])
 
   const handleBuy = (productId: string) => {
     const product = products.find(p => p.id === productId)
@@ -202,6 +217,27 @@ export default function ProductsPage() {
                   setTimeout(() => setDebouncedSearch(e.target.value), 300)
                 }}
               />
+            </div>
+
+            <div className="flex items-center gap-2 w-full lg:w-auto">
+              {([
+                { label: "5G Only", active: show5GOnly, toggle: () => setShow5GOnly(v => !v) },
+                { label: "Unlimited", active: showUnlimitedOnly, toggle: () => setShowUnlimitedOnly(v => !v) },
+                { label: "Calls", active: showCallsOnly, toggle: () => setShowCallsOnly(v => !v) },
+              ] as const).map(({ label, active, toggle }) => (
+                <button
+                  key={label}
+                  onClick={toggle}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all",
+                    active
+                      ? "bg-primary/20 text-primary border-primary/30"
+                      : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
