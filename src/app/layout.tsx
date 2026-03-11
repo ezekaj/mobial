@@ -8,6 +8,7 @@ import { AuthProvider } from "@/components/providers/auth-provider"
 import { ReactQueryProvider } from "@/components/providers/react-query-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { CartProvider } from "@/contexts/cart-context"
+import { CurrencyProvider } from "@/contexts/currency-context"
 import { NotificationPrompt } from "@/components/common/notification-prompt"
 
 const inter = Inter({
@@ -90,11 +91,13 @@ export default async function RootLayout({
                 enableSystem={false}
                 disableTransitionOnChange
               >
-                <CartProvider>
-                  {children}
-                  <NotificationPrompt />
-                  <Toaster position="top-center" expand={true} richColors />
-                </CartProvider>
+                <CurrencyProvider>
+                  <CartProvider>
+                    {children}
+                    <NotificationPrompt />
+                    <Toaster position="top-center" expand={true} richColors />
+                  </CartProvider>
+                </CurrencyProvider>
               </ThemeProvider>
             </AuthProvider>
           </ReactQueryProvider>

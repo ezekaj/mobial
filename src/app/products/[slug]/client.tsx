@@ -31,6 +31,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useCart } from "@/contexts/cart-context"
+import { useCurrency } from "@/contexts/currency-context"
 import { ProductWithDetails } from "@/services/product-service"
 
 interface ProductDetailClientProps {
@@ -41,6 +42,7 @@ interface ProductDetailClientProps {
 export function ProductDetailClient({ product, relatedProducts }: ProductDetailClientProps) {
   const router = useRouter()
   const { addItem, isInCart } = useCart()
+  const { formatPrice } = useCurrency()
   const [addingToCart, setAddingToCart] = useState(false)
 
   const discount = product.originalPrice
@@ -272,10 +274,10 @@ export function ProductDetailClient({ product, relatedProducts }: ProductDetailC
                       </Badge>
                     )}
                     <div className="flex items-end justify-center gap-2">
-                      <span className="text-4xl font-bold">${product.price.toFixed(2)}</span>
+                      <span className="text-4xl font-bold">{formatPrice(product.price)}</span>
                       {product.originalPrice && (
                         <span className="text-lg text-muted-foreground line-through">
-                          ${product.originalPrice.toFixed(2)}
+                          {formatPrice(product.originalPrice)}
                         </span>
                       )}
                     </div>

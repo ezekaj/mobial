@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { useCurrency } from "@/contexts/currency-context"
 
 interface Network {
   networkName: string
@@ -58,6 +59,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onBuy, showLink = true, className }: ProductCardProps) {
+  const { formatPrice } = useCurrency()
   const networks: Network[] = product.networks ? JSON.parse(product.networks) : []
   const has5G = networks.some(n => n.generation?.includes('5G'))
   
@@ -143,10 +145,10 @@ export function ProductCard({ product, onBuy, showLink = true, className }: Prod
           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total Price</p>
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-black text-white">
-              ${product.price.toFixed(2)}
+              {formatPrice(product.price)}
             </span>
             <span className="text-[10px] font-mono text-muted-foreground">
-              / ${(product.price / (product.validityDays || 1)).toFixed(2)}d
+              / {formatPrice(product.price / (product.validityDays || 1))}d
             </span>
           </div>
         </div>

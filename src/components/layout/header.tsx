@@ -32,12 +32,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { MobileNav } from "./mobile-nav"
 import { CartDrawer } from "@/components/store/cart-drawer"
 import { LanguageSwitcher } from "@/components/common/language-switcher"
+import { CurrencySelector } from "@/components/common/currency-selector"
 
 const navigation = [
   { name: "Products", href: "/products" },
+  { name: "Destinations", href: "/esim" },
   { name: "Check Usage", href: "/check-usage" },
   { name: "Top Up", href: "/topup" },
-  { name: "How It Works", href: "/#how-it-works" },
 ]
 
 export function Header() {
@@ -92,6 +93,11 @@ export function Header() {
 
           {/* Right side actions */}
           <div className="flex items-center space-x-2">
+            {/* Currency Selector */}
+            <div className="hidden sm:block">
+              <CurrencySelector />
+            </div>
+
             {/* Language Switcher */}
             <LanguageSwitcher />
 
