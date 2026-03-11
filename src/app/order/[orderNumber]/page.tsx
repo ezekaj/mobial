@@ -55,7 +55,20 @@ export default function OrderSuccessPage() {
         const res = await fetch(`/api/orders/${orderNumber}`)
         if (res.ok) {
           const data = await res.json()
-          setOrder(data.data)
+          const raw = data.data?.order || data.data
+          // Flatten esim details from nested API response to match our interface
+          setOrder({
+            id: raw.id,
+            orderNumber: raw.orderNumber,
+            status: raw.status,
+            total: raw.total,
+            createdAt: raw.createdAt,
+            esimQrCode: raw.esim?.qrCode || raw.esimQrCode,
+            esimActivationCode: raw.esim?.activationCode || raw.esimActivationCode,
+            esimSmdpAddress: raw.esim?.smdpAddress || raw.esimSmdpAddress,
+            esimIccid: raw.items?.[0]?.esimIccid || raw.esimIccid,
+            items: raw.items || [],
+          })
         }
       } catch (err) {
         console.error(err)
@@ -129,11 +142,19 @@ export default function OrderSuccessPage() {
                     <div className="flex flex-col items-center">
                       <div className="bg-white p-6 rounded-[2.5rem] shadow-2xl shadow-black/50 mb-6">
                         {order.esimQrCode ? (
-                          <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(order.esimQrCode)}`} 
-                            alt="eSIM QR"
-                            className="w-48 h-48"
-                          />
+                          order.esimQrCode.startsWith('data:') ? (
+                            <img
+                              src={order.esimQrCode}
+                              alt="eSIM QR"
+                              className="w-48 h-48"
+                            />
+                          ) : (
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(order.esimQrCode)}`}
+                              alt="eSIM QR"
+                              className="w-48 h-48"
+                            />
+                          )
                         ) : (
                           <div className="w-48 h-48 flex items-center justify-center bg-muted animate-pulse rounded-2xl">
                             <Loader2 className="h-8 w-8 animate-spin" />

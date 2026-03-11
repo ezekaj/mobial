@@ -90,9 +90,10 @@ export async function POST(request: NextRequest) {
                 order.email,
                 order.orderNumber,
                 order.items.map(item => ({
-                  name: `Top-Up: ${item.productName}`,
+                  productName: `Top-Up: ${item.productName}`,
                   quantity: item.quantity,
-                  price: item.unitPrice,
+                  unitPrice: item.unitPrice,
+                  totalPrice: item.totalPrice,
                 })),
                 order.total
               );
@@ -138,9 +139,10 @@ export async function POST(request: NextRequest) {
               order.email,
               order.orderNumber,
               order.items.map(item => ({
-                name: item.productName,
+                productName: item.productName,
                 quantity: item.quantity,
-                price: item.unitPrice,
+                unitPrice: item.unitPrice,
+                totalPrice: item.totalPrice,
               })),
               order.total
             );

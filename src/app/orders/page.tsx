@@ -56,7 +56,7 @@ interface Order {
 interface UsageData {
   dataUsed: number
   dataTotal: number
-  validityDaysRemaining: number
+  remainingDays: number | null
   status: string
 }
 
@@ -103,7 +103,7 @@ function UsageIndicator({ orderId }: { orderId: string }) {
       </div>
       <Progress value={100 - percentUsed} className="h-2 bg-muted" />
       <p className="text-[10px] text-muted-foreground">
-        {usage.validityDaysRemaining} days of validity remaining
+        {usage.remainingDays != null ? `${usage.remainingDays} days of validity remaining` : 'Validity info unavailable'}
       </p>
     </div>
   )

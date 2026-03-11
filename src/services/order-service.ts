@@ -340,6 +340,7 @@ export async function processOrderWithMobimatter(
       itemId: string;
       orderId?: string;
       qrCode?: string;
+      lpa?: string;
       activationCode?: string;
       smdpAddress?: string;
       iccid?: string;
@@ -379,6 +380,7 @@ export async function processOrderWithMobimatter(
           itemId: item.id,
           orderId: fulfilledOrder.orderId,
           qrCode: lineItem.qrCode,
+          lpa: lineItem.lpa,
           activationCode: lineItem.activationCode,
           smdpAddress: lineItem.smdpAddress,
           iccid: lineItem.iccid,
@@ -419,6 +421,10 @@ export async function processOrderWithMobimatter(
     const isKycPending = primaryResult?.kycUrl;
     const finalStatus = isKycPending ? 'PROCESSING' : 'COMPLETED';
 
+    // Prefer LPA string for QR code storage (compact, encodable by external QR services)
+    // Fall back to base64 QR_CODE image from MobiMatter if LPA not available
+    const qrCodeValue = primaryResult?.lpa || primaryResult?.qrCode;
+
     // Update order with MobiMatter details
     const updatedOrder = await db.order.update({
       where: { id: orderId },
@@ -426,7 +432,7 @@ export async function processOrderWithMobimatter(
         status: finalStatus,
         mobimatterOrderId: primaryResult?.orderId,
         mobimatterStatus: isKycPending ? 'PROCESSING' : 'COMPLETED',
-        esimQrCode: primaryResult?.qrCode,
+        esimQrCode: qrCodeValue,
         esimActivationCode: primaryResult?.activationCode,
         esimSmdpAddress: primaryResult?.smdpAddress,
         completedAt: isKycPending ? undefined : new Date(),

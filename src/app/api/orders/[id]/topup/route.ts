@@ -8,6 +8,7 @@ import {
 } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { createCheckoutSession } from '@/lib/stripe';
+import { createOrder } from '@/services/order-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -22,7 +23,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { id: orderId } = await params;
     const user = await requireAuth(request);
 
-    // Parse and validate body
     const body = await parseJsonBody(request);
     const validation = topupSchema.safeParse(body);
 
@@ -32,32 +32,33 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const { productId } = validation.data;
 
-    // Verify order exists, is completed, and user owns it
-    const order = await db.order.findUnique({
+    // Verify original order exists, is completed, and user owns it
+    const originalOrder = await db.order.findUnique({
       where: { id: orderId },
       select: {
         id: true,
         orderNumber: true,
         userId: true,
         email: true,
+        phone: true,
         status: true,
         mobimatterOrderId: true,
       },
     });
 
-    if (!order) {
+    if (!originalOrder) {
       return errorResponse('Order not found', 404);
     }
 
-    if (order.userId !== user.id && user.role !== 'ADMIN') {
+    if (originalOrder.userId !== user.id && user.role !== 'ADMIN') {
       return errorResponse('Access denied', 403);
     }
 
-    if (order.status !== 'COMPLETED') {
+    if (originalOrder.status !== 'COMPLETED') {
       return errorResponse('Only completed orders can be topped up', 400);
     }
 
-    if (!order.mobimatterOrderId) {
+    if (!originalOrder.mobimatterOrderId) {
       return errorResponse('Order has no eSIM provisioned', 400);
     }
 
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         id: true,
         name: true,
         price: true,
+        mobimatterId: true,
         isActive: true,
       },
     });
@@ -76,16 +78,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return errorResponse('Top-up product not found or unavailable', 404);
     }
 
-    // Create a Stripe checkout session for the top-up
+    // Create a NEW order in our DB for the top-up
+    const topupOrder = await createOrder(
+      {
+        items: [{ productId: product.id, quantity: 1 }],
+        email: originalOrder.email,
+        phone: originalOrder.phone || undefined,
+        isTopUp: true,
+        parentMobimatterOrderId: originalOrder.mobimatterOrderId,
+      },
+      user.id,
+    );
+
+    // Create Stripe session with top-up metadata
     const session = await createCheckoutSession({
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      email: order.email,
+      orderId: topupOrder.order.id,
+      orderNumber: topupOrder.order.orderNumber,
+      email: originalOrder.email,
       amount: product.price,
+      isTopUp: true,
+      parentMobimatterOrderId: originalOrder.mobimatterOrderId,
       items: [
         {
           name: `Top-Up: ${product.name}`,
-          description: `Data top-up for order ${order.orderNumber}`,
           amount: product.price,
           quantity: 1,
         },
@@ -95,6 +110,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return successResponse({
       sessionId: session.id,
       url: session.url,
+      topupOrderId: topupOrder.order.id,
       product: {
         id: product.id,
         name: product.name,
