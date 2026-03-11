@@ -169,7 +169,7 @@ function ProductGrid({
                 </div>
               </div>
               <div className="flex items-center justify-between pt-2">
-                <span className="text-xl font-black">{formatPrice(product.price)}</span>
+                <span className="text-xl font-black" suppressHydrationWarning>{formatPrice(product.price)}</span>
                 <span className="text-xs font-bold text-primary group-hover:translate-x-1 transition-transform flex items-center">
                   View <ChevronRight className="h-3 w-3 ml-0.5" />
                 </span>
