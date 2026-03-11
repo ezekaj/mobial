@@ -5,7 +5,7 @@
 
 import { db } from '@/lib/db';
 import { logAudit } from '@/lib/audit';
-import { createOrder as mobimatterCreateOrder, completeOrder as mobimatterCompleteOrder, getOrderInfo as mobimatterGetOrderInfo } from '@/lib/mobimatter';
+import { createOrder as mobimatterCreateOrder, completeOrder as mobimatterCompleteOrder } from '@/lib/mobimatter';
 import { Prisma, OrderStatus, PaymentStatus } from '@prisma/client';
 
 // Types

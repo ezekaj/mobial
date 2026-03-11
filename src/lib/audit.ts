@@ -34,7 +34,11 @@ export type AuditAction =
   | 'gdpr_consent'
   | 'settings_change'
   | 'product_sync'
-  | 'security_alert';
+  | 'security_alert'
+  | 'usage_lookup'
+  | 'topup_payment_success'
+  | 'topup_payment_failed'
+  | 'stripe_payment_success';
 
 interface AuditLogData {
   userId?: string;
