@@ -27,6 +27,33 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo)
+
+    // Report to monitoring API
+    try {
+      const body = JSON.stringify({
+        message: error.message,
+        stack: error.stack,
+        path: typeof window !== "undefined" ? window.location.pathname : undefined,
+        metadata: {
+          componentStack: errorInfo.componentStack,
+          source: "ErrorBoundary",
+        },
+      })
+
+      if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+        const blob = new Blob([body], { type: "application/json" })
+        navigator.sendBeacon("/api/monitoring/error", blob)
+      } else if (typeof fetch !== "undefined") {
+        fetch("/api/monitoring/error", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: true,
+        }).catch(() => {})
+      }
+    } catch {
+      // Silently fail — don't let monitoring break error handling
+    }
   }
 
   public render() {

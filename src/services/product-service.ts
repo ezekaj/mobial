@@ -6,6 +6,7 @@
 import { db } from '@/lib/db';
 import { fetchProducts } from '@/lib/mobimatter';
 import { Prisma } from '@prisma/client';
+import { cached, invalidateCachePrefix, CACHE_TTL } from '@/lib/cache';
 
 // Pricing
 const MARKUP_PERCENTAGE = 0.10; // 10% markup on MobiMatter retail price
@@ -408,6 +409,12 @@ export async function syncProductsFromMobimatter(): Promise<SyncResult> {
       data: { isActive: false },
     });
 
+    // Invalidate all product-related caches after sync
+    invalidateCachePrefix('product:');
+    invalidateCachePrefix('products:');
+    invalidateCachePrefix('countries:');
+    invalidateCachePrefix('providers:');
+
   } catch (error) {
     result.success = false;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -421,21 +428,27 @@ export async function syncProductsFromMobimatter(): Promise<SyncResult> {
  * Get product by ID or slug
  */
 export async function getProductById(idOrSlug: string): Promise<ProductWithDetails | null> {
-  const product = await db.product.findFirst({
-    where: {
-      OR: [
-        { id: idOrSlug },
-        { slug: idOrSlug },
-        { mobimatterId: idOrSlug },
-      ],
+  return cached(
+    `product:${idOrSlug}`,
+    async () => {
+      const product = await db.product.findFirst({
+        where: {
+          OR: [
+            { id: idOrSlug },
+            { slug: idOrSlug },
+            { mobimatterId: idOrSlug },
+          ],
+        },
+      });
+
+      if (!product) {
+        return null;
+      }
+
+      return parseProductJsonFields(product);
     },
-  });
-
-  if (!product) {
-    return null;
-  }
-
-  return parseProductJsonFields(product);
+    CACHE_TTL.PRODUCT_DETAIL
+  );
 }
 
 /**
@@ -520,84 +533,97 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Paginat
  * Get list of all available countries from products
  */
 export async function getAvailableCountries(): Promise<CountryInfo[]> {
-  // Get all products with countries
-  const products = await db.product.findMany({
-    where: {
-      isActive: true,
-      countries: { not: null },
-    },
-    select: {
-      countries: true,
-    },
-  });
+  return cached(
+    'countries:all',
+    async () => {
+      const products = await db.product.findMany({
+        where: {
+          isActive: true,
+          countries: { not: null },
+        },
+        select: {
+          countries: true,
+        },
+      });
 
-  // Count occurrences of each country
-  const countryCount = new Map<string, number>();
+      const countryCount = new Map<string, number>();
 
-  for (const product of products) {
-    if (product.countries) {
-      try {
-        const countries = JSON.parse(product.countries) as string[];
-        for (const country of countries) {
-          countryCount.set(country, (countryCount.get(country) || 0) + 1);
+      for (const product of products) {
+        if (product.countries) {
+          try {
+            const countries = JSON.parse(product.countries) as string[];
+            for (const country of countries) {
+              countryCount.set(country, (countryCount.get(country) || 0) + 1);
+            }
+          } catch {
+            // Skip invalid JSON
+          }
         }
-      } catch {
-        // Skip invalid JSON
       }
-    }
-  }
 
-  // Convert to array and sort by count
-  const result = Array.from(countryCount.entries())
-    .map(([code, productCount]) => ({
-      code,
-      name: getCountryName(code),
-      productCount,
-    }))
-    .sort((a, b) => b.productCount - a.productCount);
-
-  return result;
+      return Array.from(countryCount.entries())
+        .map(([code, productCount]) => ({
+          code,
+          name: getCountryName(code),
+          productCount,
+        }))
+        .sort((a, b) => b.productCount - a.productCount);
+    },
+    CACHE_TTL.COUNTRIES
+  );
 }
 
 /**
  * Get list of all providers with product counts
  */
 export async function getAvailableProviders(): Promise<ProviderInfo[]> {
-  const providers = await db.product.groupBy({
-    by: ['provider'],
-    where: {
-      isActive: true,
-    },
-    _count: {
-      id: true,
-    },
-    orderBy: {
-      _count: {
-        id: 'desc',
-      },
-    },
-  });
+  return cached(
+    'providers:all',
+    async () => {
+      const providers = await db.product.groupBy({
+        by: ['provider'],
+        where: {
+          isActive: true,
+        },
+        _count: {
+          id: true,
+        },
+        orderBy: {
+          _count: {
+            id: 'desc',
+          },
+        },
+      });
 
-  return providers.map(p => ({
-    name: p.provider,
-    productCount: p._count.id,
-  }));
+      return providers.map(p => ({
+        name: p.provider,
+        productCount: p._count.id,
+      }));
+    },
+    CACHE_TTL.PROVIDERS
+  );
 }
 
 /**
  * Get featured products
  */
 export async function getFeaturedProducts(limit: number = 6): Promise<ProductWithDetails[]> {
-  const products = await db.product.findMany({
-    where: {
-      isActive: true,
-      isFeatured: true,
-    },
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-  });
+  return cached(
+    `products:featured:${limit}`,
+    async () => {
+      const products = await db.product.findMany({
+        where: {
+          isActive: true,
+          isFeatured: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      });
 
-  return products.map(parseProductJsonFields);
+      return products.map(parseProductJsonFields);
+    },
+    CACHE_TTL.FEATURED
+  );
 }
 
 /**

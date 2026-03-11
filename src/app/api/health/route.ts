@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getCacheStats } from '@/lib/cache';
 
 interface HealthResponse {
   status: 'healthy' | 'unhealthy' | 'degraded';
@@ -122,5 +123,6 @@ export async function GET(): Promise<NextResponse<HealthResponse>> {
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version || '0.2.0',
     checks,
+    cache: getCacheStats(),
   });
 }
