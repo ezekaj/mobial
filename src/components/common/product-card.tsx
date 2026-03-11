@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import Link from "next/link"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { useCurrency } from "@/contexts/currency-context"
 
@@ -52,16 +53,43 @@ interface ProductCardProps {
     activationPolicy?: string | null
     topUpAvailable?: boolean
     requiresKyc?: boolean
+    is5G?: boolean
+    tags?: Array<{item: string; color?: string}> | string | null
+    providerLogo?: string | null
+    speedInfo?: string | null
   }
   onBuy?: (productId: string) => void
   showLink?: boolean
   className?: string
 }
 
+function getTagColorClasses(color?: string): string {
+  switch (color) {
+    case "green":
+    case "emerald":
+      return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+    case "blue":
+      return "bg-blue-500/10 text-blue-400 border-blue-500/20"
+    case "amber":
+    case "yellow":
+      return "bg-amber-500/10 text-amber-400 border-amber-500/20"
+    case "red":
+      return "bg-red-500/10 text-red-400 border-red-500/20"
+    default:
+      return "bg-primary/10 text-primary border-primary/20"
+  }
+}
+
 export function ProductCard({ product, onBuy, showLink = true, className }: ProductCardProps) {
   const { formatPrice } = useCurrency()
   const networks: Network[] = product.networks ? JSON.parse(product.networks) : []
-  const has5G = networks.some(n => n.generation?.includes('5G'))
+  const has5G = product.is5G || networks.some(n => n.generation?.includes('5G'))
+
+  const parsedTags: Array<{item: string; color?: string}> = (() => {
+    if (!product.tags) return []
+    if (Array.isArray(product.tags)) return product.tags
+    try { return JSON.parse(product.tags) } catch { return [] }
+  })()
   
   const productLink = product.slug ? `/products/${product.slug}` : `/products/${product.id}`
 
@@ -84,6 +112,14 @@ export function ProductCard({ product, onBuy, showLink = true, className }: Prod
             Refillable
           </Badge>
         )}
+        {parsedTags.slice(0, 2).map((tag, i) => (
+          <Badge key={i} className={cn(
+            "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full backdrop-blur-md border",
+            getTagColorClasses(tag.color)
+          )}>
+            {tag.item}
+          </Badge>
+        ))}
       </div>
 
       <div className="absolute top-3 right-3 z-10 flex flex-col gap-2 items-end">
@@ -101,7 +137,12 @@ export function ProductCard({ product, onBuy, showLink = true, className }: Prod
 
       <CardHeader className="p-6 pb-2 mt-8">
         <div className="space-y-1">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{product.provider}</p>
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-1.5">
+            {product.providerLogo && (
+              <Image src={product.providerLogo} alt={product.provider} width={16} height={16} className="rounded-sm object-contain" />
+            )}
+            {product.provider}
+          </p>
           <h3 className="font-bold text-xl leading-tight group-hover:text-primary transition-colors line-clamp-2 min-h-[3.5rem]">
             <Link href={showLink ? productLink : "#"}>
               {product.name}
@@ -127,7 +168,7 @@ export function ProductCard({ product, onBuy, showLink = true, className }: Prod
         <div className="space-y-4">
           <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 border-y border-white/5 py-2">
             <span className="flex items-center gap-1.5"><Power className="h-3 w-3" /> {product.activationPolicy || "At Connection"}</span>
-            <span className="flex items-center gap-1.5"><Signal className="h-3 w-3" /> {networks.length} Networks</span>
+            <span className="flex items-center gap-1.5"><Signal className="h-3 w-3" /> {product.speedInfo || `${networks.length} Networks`}</span>
           </div>
 
           <div className="flex flex-wrap gap-1.5">
