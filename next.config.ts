@@ -5,10 +5,23 @@ const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  typescript: {
-    ignoreBuildErrors: true,
+  reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "mobimatterstorage.blob.core.windows.net",
+      },
+      {
+        protocol: "https",
+        hostname: "api.qrserver.com",
+      },
+      {
+        protocol: "https",
+        hostname: "api.mobimatter.com",
+      },
+    ],
   },
-  reactStrictMode: false,
 };
 
 export default withNextIntl(nextConfig);
