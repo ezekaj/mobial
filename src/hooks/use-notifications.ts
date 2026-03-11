@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback } from "react"
 
 interface UseNotificationsReturn {
   isSupported: boolean
@@ -9,24 +9,20 @@ interface UseNotificationsReturn {
   subscribe: () => Promise<PushSubscription | null>
 }
 
+function checkSupported(): boolean {
+  if (typeof window === "undefined") return false
+  return "Notification" in window && "serviceWorker" in navigator && "PushManager" in window
+}
+
+function getInitialPermission(): NotificationPermission | "unsupported" {
+  if (typeof window === "undefined") return "unsupported"
+  if (!("Notification" in window)) return "unsupported"
+  return Notification.permission
+}
+
 export function useNotifications(): UseNotificationsReturn {
-  const [isSupported, setIsSupported] = useState(false)
-  const [permission, setPermission] = useState<NotificationPermission | "unsupported">("unsupported")
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const supported =
-      "Notification" in window &&
-      "serviceWorker" in navigator &&
-      "PushManager" in window
-
-    setIsSupported(supported)
-
-    if (supported) {
-      setPermission(Notification.permission)
-    }
-  }, [])
+  const [isSupported] = useState(checkSupported)
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(getInitialPermission)
 
   const requestPermission = useCallback(async (): Promise<NotificationPermission> => {
     if (!isSupported) return "denied"

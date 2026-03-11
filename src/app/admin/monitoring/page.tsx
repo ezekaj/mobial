@@ -299,7 +299,7 @@ export default function AdminMonitoringPage() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [period]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [period])
 
   const handlePeriodChange = (newPeriod: Period) => {
     setPeriod(newPeriod)
