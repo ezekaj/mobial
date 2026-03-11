@@ -172,7 +172,7 @@ function transformMobimatterProduct(raw: {
     validityDays: raw.validityDays || null,
     price: raw.price,
     currency: raw.currency || 'USD',
-    originalPrice: raw.wholesalePrice || null,
+    originalPrice: null, // Reserved for admin-set promotional discounts; wholesalePrice is internal cost
     features: raw.features ? JSON.stringify(raw.features) : null,
     isUnlimited: raw.isUnlimited,
     supportsHotspot: raw.supportsHotspot,
@@ -284,7 +284,7 @@ export async function syncProductsFromMobimatter(): Promise<SyncResult> {
               validityDays: rawProduct.validityDays ?? existing.validityDays,
               price: rawProduct.price,
               currency: rawProduct.currency || existing.currency,
-              originalPrice: rawProduct.wholesalePrice || existing.originalPrice,
+              // Don't overwrite originalPrice from sync — it's reserved for admin-set discounts
               features: rawProduct.features ? JSON.stringify(rawProduct.features) : existing.features,
               isUnlimited: rawProduct.isUnlimited,
               supportsHotspot: rawProduct.supportsHotspot,
