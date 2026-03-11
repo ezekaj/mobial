@@ -1,16 +1,10 @@
 import { NextRequest } from "next/server"
-import { successResponse, errorResponse, requireAuth } from "@/lib/auth-helpers"
+import { successResponse, errorResponse, requireAdmin } from "@/lib/auth-helpers"
 import { getPendingReviews, approveReview, rejectReview } from "@/services/review-service"
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireAuth(request)
-    if (!authResult.success) {
-      return errorResponse("Unauthorized", 401)
-    }
-    if (authResult.user.role !== "ADMIN") {
-      return errorResponse("Admin access required", 403)
-    }
+    await requireAdmin(request)
 
     const { searchParams } = new URL(request.url)
     const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50)
@@ -18,7 +12,10 @@ export async function GET(request: NextRequest) {
 
     const reviews = await getPendingReviews(limit, offset)
     return successResponse({ reviews })
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.name === "AuthError") {
+      return errorResponse(error.message, error.statusCode || 401)
+    }
     console.error("Error fetching pending reviews:", error)
     return errorResponse("Failed to fetch reviews", 500)
   }
@@ -26,13 +23,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const authResult = await requireAuth(request)
-    if (!authResult.success) {
-      return errorResponse("Unauthorized", 401)
-    }
-    if (authResult.user.role !== "ADMIN") {
-      return errorResponse("Admin access required", 403)
-    }
+    await requireAdmin(request)
 
     const body = await request.json()
     const { reviewId, action } = body
@@ -50,7 +41,10 @@ export async function PATCH(request: NextRequest) {
     } else {
       return errorResponse("Invalid action. Use 'approve' or 'reject'", 400)
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.name === "AuthError") {
+      return errorResponse(error.message, error.statusCode || 401)
+    }
     console.error("Error updating review:", error)
     return errorResponse("Failed to update review", 500)
   }

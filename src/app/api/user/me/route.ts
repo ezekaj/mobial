@@ -54,15 +54,6 @@ export async function GET(request: NextRequest) {
             notifications: { where: { isRead: false } },
           },
         },
-        affiliateProfile: {
-          select: {
-            id: true,
-            affiliateCode: true,
-            status: true,
-            totalEarnings: true,
-            totalPaidOut: true,
-          },
-        },
       },
     });
     

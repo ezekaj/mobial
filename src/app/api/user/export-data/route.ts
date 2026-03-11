@@ -145,9 +145,6 @@ async function gatherUserData(userId: string) {
     user,
     sessions,
     orders,
-    affiliateProfile,
-    affiliateLinks,
-    commissions,
     gdprConsents,
     notifications,
     auditLogs,
@@ -204,49 +201,6 @@ async function gatherUserData(userId: string) {
         },
       },
     }),
-    // Affiliate profile
-    db.affiliateProfile.findUnique({
-      where: { userId },
-      select: {
-        id: true,
-        affiliateCode: true,
-        companyName: true,
-        website: true,
-        commissionRate: true,
-        totalClicks: true,
-        totalConversions: true,
-        totalEarnings: true,
-        totalPaidOut: true,
-        createdAt: true,
-        approvedAt: true,
-      },
-    }),
-    // Affiliate links
-    db.affiliateLink.findMany({
-      where: { affiliateId: userId },
-      select: {
-        id: true,
-        code: true,
-        name: true,
-        clicks: true,
-        conversions: true,
-        createdAt: true,
-      },
-    }),
-    // Commissions
-    db.commission.findMany({
-      where: { affiliateId: userId },
-      select: {
-        id: true,
-        type: true,
-        status: true,
-        amount: true,
-        currency: true,
-        baseAmount: true,
-        createdAt: true,
-        paidAt: true,
-      },
-    }),
     // GDPR consents
     db.gDPRConsent.findMany({
       where: { userId },
@@ -282,9 +236,6 @@ async function gatherUserData(userId: string) {
     user,
     sessions,
     orders,
-    affiliateProfile,
-    affiliateLinks,
-    commissions,
     gdprConsents,
     notifications,
     auditLogs,

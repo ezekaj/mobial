@@ -467,10 +467,6 @@ export function ProductDetailClient({ product, relatedProducts }: ProductDetailC
                       price: relatedProduct.price,
                       originalPrice: relatedProduct.originalPrice,
                       isUnlimited: relatedProduct.isUnlimited,
-                      isFeatured: relatedProduct.isFeatured,
-                      supportsHotspot: relatedProduct.supportsHotspot,
-                      supportsCalls: relatedProduct.supportsCalls,
-                      supportsSms: relatedProduct.supportsSms,
                     }}
                     onBuy={() => {
                       addItem({

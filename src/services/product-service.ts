@@ -61,6 +61,8 @@ export interface ProductWithDetails {
   speedInfo: string | null;
   ipRouting: string | null;
   usageTracking: boolean;
+  rank: number | null;
+  productFamilyId: string | null;
   createdAt: Date;
   updatedAt: Date;
   syncedAt: Date | null;
@@ -184,6 +186,8 @@ function transformMobimatterProduct(raw: {
     speedInfo: raw.speedInfo || null,
     topUpAvailable: raw.topUpAvailable || false,
     usageTracking: raw.usageTracking || false,
+    rank: raw.rank ?? null,
+    productFamilyId: raw.productFamilyId || null,
     isActive: true,
     isFeatured: false,
     slug: '',
@@ -227,6 +231,8 @@ function parseProductJsonFields(product: {
   speedInfo: string | null;
   ipRouting: string | null;
   usageTracking: boolean;
+  rank: number | null;
+  productFamilyId: string | null;
   createdAt: Date;
   updatedAt: Date;
   syncedAt: Date | null;
@@ -296,6 +302,8 @@ export async function syncProductsFromMobimatter(): Promise<SyncResult> {
               speedInfo: rawProduct.speedInfo || existing.speedInfo,
               topUpAvailable: rawProduct.topUpAvailable ?? existing.topUpAvailable,
               usageTracking: rawProduct.usageTracking ?? existing.usageTracking,
+              rank: rawProduct.rank ?? existing.rank,
+              productFamilyId: rawProduct.productFamilyId || existing.productFamilyId,
               slug,
               syncedAt: new Date(),
             },

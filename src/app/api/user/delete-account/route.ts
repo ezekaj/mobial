@@ -74,23 +74,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check for pending payouts (if affiliate)
-    if (fullUser.role === 'AFFILIATE') {
-      const pendingPayouts = await db.payout.count({
-        where: {
-          affiliate: { userId: user.id },
-          status: { in: ['PENDING', 'PROCESSING'] },
-        },
-      });
-      
-      if (pendingPayouts > 0) {
-        return errorResponse(
-          `You have ${pendingPayouts} pending payout(s). Please wait for them to complete before deleting your account.`,
-          400
-        );
-      }
-    }
-    
     // Create deletion request
     const deletionRequest = await db.dataDeletionRequest.create({
       data: {

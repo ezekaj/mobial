@@ -33,8 +33,6 @@ const createOrderSchema = z.object({
     .min(1, 'At least one item is required'),
   email: z.string().email('Valid email is required'),
   phone: z.string().optional(),
-  affiliateCode: z.string().optional(),
-  affiliateClickId: z.string().optional(),
   isTopUp: z.boolean().optional(),
   parentMobimatterOrderId: z.string().optional(),
 });
@@ -71,7 +69,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { items, email, phone, affiliateCode, affiliateClickId, isTopUp, parentMobimatterOrderId } = validationResult.data;
+    const { items, email, phone, isTopUp, parentMobimatterOrderId } = validationResult.data;
 
     // Check if user is authenticated (optional)
     const user = await getAuthUser(request);
@@ -86,8 +84,6 @@ export async function POST(request: NextRequest) {
         items: items as CreateOrderItem[],
         email,
         phone,
-        affiliateCode,
-        affiliateClickId,
         isTopUp,
         parentMobimatterOrderId,
       },
@@ -97,10 +93,7 @@ export async function POST(request: NextRequest) {
     );
 
     return successResponse(
-      {
-        order: result.order,
-        affiliateClickId: result.affiliateClickId,
-      },
+      { order: result.order },
       'Order created successfully'
     );
   } catch (error) {

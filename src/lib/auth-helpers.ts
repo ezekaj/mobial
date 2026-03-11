@@ -200,14 +200,7 @@ export function sanitizeUser(user: User): Omit<User, 'passwordHash' | 'twoFactor
  */
 export function hasPermission(user: AuthUser, permission: string): boolean {
   const permissions: Record<UserRole, string[]> = {
-    ADMIN: ['*'], // Admin has all permissions
-    AFFILIATE: [
-      'view_products',
-      'create_links',
-      'view_commissions',
-      'request_payout',
-      'view_analytics',
-    ],
+    ADMIN: ['*'],
     CUSTOMER: [
       'view_products',
       'create_order',

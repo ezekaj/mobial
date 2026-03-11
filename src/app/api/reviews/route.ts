@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get("x-forwarded-for") || "unknown"
-    const allowed = await checkRateLimit(ip, "review_submit", 5, 60 * 60)
+    const rateCheck = await checkRateLimit(ip, "review_submit")
+    const allowed = rateCheck.success
     if (!allowed) {
       return errorResponse("Too many review submissions. Please try again later.", 429)
     }
@@ -61,8 +62,7 @@ export async function POST(request: NextRequest) {
     })
 
     return successResponse(
-      { id: review.id, message: "Review submitted successfully. It will appear after approval." },
-      201
+      { id: review.id, message: "Review submitted successfully. It will appear after approval." }
     )
   } catch (error) {
     console.error("Error creating review:", error)
