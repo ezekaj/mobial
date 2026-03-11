@@ -62,7 +62,15 @@ export interface ProductWithDetails {
   ipRouting: string | null;
   usageTracking: boolean;
   rank: number | null;
-  productFamilyId: string | null;
+  penalizedRank: number | null;
+  productFamilyId: number | null;
+  networkListId: number | null;
+  tags: string | null;
+  externallyShown: boolean;
+  additionalDetails: string | null;
+  phoneNumberPrefix: string | null;
+  is5G: boolean;
+  speedLong: string | null;
   createdAt: Date;
   updatedAt: Date;
   syncedAt: Date | null;
@@ -153,12 +161,20 @@ function transformMobimatterProduct(raw: {
   activationPolicy?: string | null;
   ipRouting?: string | null;
   speedInfo?: string | null;
+  speedLong?: string | null;
   topUpAvailable?: boolean;
-  usageTracking?: boolean;
+  usageTracking?: string | null;
+  is5G?: boolean;
+  tags?: Array<{ item: string; color?: string }>;
+  externallyShown?: boolean;
+  additionalDetails?: string | null;
+  phoneNumberPrefix?: string | null;
   rank?: number;
+  penalizedRank?: number;
   productCategory?: string;
-  productFamilyId?: string;
+  productFamilyId?: number;
   productFamilyName?: string;
+  networkListId?: number;
 }): Prisma.ProductCreateInput {
   return {
     mobimatterId: raw.id,
@@ -174,7 +190,7 @@ function transformMobimatterProduct(raw: {
     validityDays: raw.validityDays || null,
     price: raw.price,
     currency: raw.currency || 'USD',
-    originalPrice: null, // Reserved for admin-set promotional discounts; wholesalePrice is internal cost
+    originalPrice: null,
     features: raw.features ? JSON.stringify(raw.features) : null,
     isUnlimited: raw.isUnlimited,
     supportsHotspot: raw.supportsHotspot,
@@ -184,10 +200,18 @@ function transformMobimatterProduct(raw: {
     activationPolicy: raw.activationPolicy || null,
     ipRouting: raw.ipRouting || null,
     speedInfo: raw.speedInfo || null,
+    speedLong: raw.speedLong || null,
     topUpAvailable: raw.topUpAvailable || false,
-    usageTracking: raw.usageTracking || false,
+    usageTracking: raw.usageTracking === 'Realtime, in-app' || raw.usageTracking === 'Dial short code',
+    is5G: raw.is5G || false,
+    tags: raw.tags ? JSON.stringify(raw.tags) : null,
+    externallyShown: raw.externallyShown !== false,
+    additionalDetails: raw.additionalDetails || null,
+    phoneNumberPrefix: raw.phoneNumberPrefix || null,
     rank: raw.rank ?? null,
-    productFamilyId: raw.productFamilyId || null,
+    penalizedRank: raw.penalizedRank ?? null,
+    productFamilyId: raw.productFamilyId ?? null,
+    networkListId: raw.networkListId ?? null,
     isActive: true,
     isFeatured: false,
     slug: '',
@@ -232,7 +256,15 @@ function parseProductJsonFields(product: {
   ipRouting: string | null;
   usageTracking: boolean;
   rank: number | null;
-  productFamilyId: string | null;
+  penalizedRank: number | null;
+  productFamilyId: number | null;
+  networkListId: number | null;
+  tags: string | null;
+  externallyShown: boolean;
+  additionalDetails: string | null;
+  phoneNumberPrefix: string | null;
+  is5G: boolean;
+  speedLong: string | null;
   createdAt: Date;
   updatedAt: Date;
   syncedAt: Date | null;
@@ -290,7 +322,6 @@ export async function syncProductsFromMobimatter(): Promise<SyncResult> {
               validityDays: rawProduct.validityDays ?? existing.validityDays,
               price: rawProduct.price,
               currency: rawProduct.currency || existing.currency,
-              // Don't overwrite originalPrice from sync — it's reserved for admin-set discounts
               features: rawProduct.features ? JSON.stringify(rawProduct.features) : existing.features,
               isUnlimited: rawProduct.isUnlimited,
               supportsHotspot: rawProduct.supportsHotspot,
@@ -300,10 +331,18 @@ export async function syncProductsFromMobimatter(): Promise<SyncResult> {
               activationPolicy: rawProduct.activationPolicy || existing.activationPolicy,
               ipRouting: rawProduct.ipRouting || existing.ipRouting,
               speedInfo: rawProduct.speedInfo || existing.speedInfo,
+              speedLong: rawProduct.speedLong || existing.speedLong,
               topUpAvailable: rawProduct.topUpAvailable ?? existing.topUpAvailable,
-              usageTracking: rawProduct.usageTracking ?? existing.usageTracking,
+              usageTracking: rawProduct.usageTracking === 'Realtime, in-app' || rawProduct.usageTracking === 'Dial short code',
+              is5G: rawProduct.is5G ?? existing.is5G,
+              tags: rawProduct.tags ? JSON.stringify(rawProduct.tags) : existing.tags,
+              externallyShown: rawProduct.externallyShown !== false,
+              additionalDetails: rawProduct.additionalDetails || existing.additionalDetails,
+              phoneNumberPrefix: rawProduct.phoneNumberPrefix || existing.phoneNumberPrefix,
               rank: rawProduct.rank ?? existing.rank,
-              productFamilyId: rawProduct.productFamilyId || existing.productFamilyId,
+              penalizedRank: rawProduct.penalizedRank ?? existing.penalizedRank,
+              productFamilyId: rawProduct.productFamilyId ?? existing.productFamilyId,
+              networkListId: rawProduct.networkListId ?? existing.networkListId,
               slug,
               syncedAt: new Date(),
             },

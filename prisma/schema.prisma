@@ -130,7 +130,17 @@ model Product {
   
   // MobiMatter Sorting & Grouping
   rank                  Int?     // Quality factor for sorting (higher = better)
-  productFamilyId       String?  // Products sharing this can be interchangeably topped up
+  penalizedRank         Int?     // Adjusted rank for sorting
+  productFamilyId       Int?     // Products sharing this can be interchangeably topped up
+  networkListId         Int?     // Network list identifier for carrier lookups
+
+  // Quality & Visibility
+  tags                  String?  // JSON array of {item, color?} quality badges
+  externallyShown       Boolean  @default(true)  // Whether to display to customers
+  additionalDetails     String?  // HTML additional info from MobiMatter
+  phoneNumberPrefix     String?  // Phone number included with plan (e.g. "+382")
+  is5G                  Boolean  @default(false)  // Explicit 5G support flag
+  speedLong             String?  // Detailed speed description
 
   // Coverage
   countries             String?  // JSON array of country codes

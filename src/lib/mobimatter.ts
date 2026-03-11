@@ -42,10 +42,12 @@ interface MobiMatterResponse<T> {
 /** Raw product from MobiMatter API */
 interface MobiMatterRawProduct {
   productId: string;
+  uniqueId: string;
   rank: number;
+  penalizedRank: number;
   productCategoryId: number;
   productCategory: string;
-  productFamilyId: string;
+  productFamilyId: number;
   productFamilyName: string;
   providerId: number;
   providerName: string;
@@ -153,12 +155,20 @@ export interface Product {
   activationPolicy: string | null;
   ipRouting: string | null;
   speedInfo: string | null;
+  speedLong: string | null;
   topUpAvailable: boolean;
-  usageTracking: boolean;
+  usageTracking: string | null;
+  is5G: boolean;
+  tags: Array<{ item: string; color?: string }>;
+  externallyShown: boolean;
+  additionalDetails: string | null;
+  phoneNumberPrefix: string | null;
   rank: number;
+  penalizedRank: number;
   productCategory: string;
-  productFamilyId: string;
+  productFamilyId: number;
   productFamilyName: string;
+  networkListId: number;
   updated: string;
 }
 
@@ -314,40 +324,75 @@ export async function getProductNetworks(productId: string): Promise<unknown> {
 
 /**
  * Transform raw MobiMatter product to our format.
+ *
+ * Actual productDetails field names from the API:
+ * PLAN_DATA_LIMIT, PLAN_DATA_UNIT, PLAN_VALIDITY, PLAN_TITLE, PLAN_DETAILS,
+ * HAS_DATA, HAS_CALLS, HAS_SMS, HOTSPOT, TOPUP, SPEED, SPEED_LONG,
+ * ACTIVATION_POLICY, USAGE_TRACKING, IP_BREAKOUT, NETWORKS_SHORT, FIVEG,
+ * UNLIMITED, EXTERNALLY_SHOWN, TAGS, ADDITIONAL_DETAILS, PHONE_NUMBER_PREFIX,
+ * ONLY_RETURNS_INVENTORY, OFFER_RANK, CHECK_USAGE_PACKAGES
  */
 function transformProduct(product: MobiMatterRawProduct): Product {
+  // Trim keys — API sometimes has trailing spaces (e.g., "PLAN_DETAILS ")
   const details = Object.fromEntries(
-    (product.productDetails || []).map(d => [d.name, d.value])
+    (product.productDetails || []).map(d => [d.name.trim(), d.value])
   );
 
-  // PLAN_DATA_LIMIT is in MB — convert to GB
+  // Data amount — use PLAN_DATA_UNIT to determine the unit
   let dataAmount: number | null = null;
+  const dataUnit = details.PLAN_DATA_UNIT || 'GB';
   const dataLimitStr = details.PLAN_DATA_LIMIT;
   if (dataLimitStr) {
-    dataAmount = parseInt(dataLimitStr) / 1000;
+    const raw = parseInt(dataLimitStr);
+    if (dataUnit === 'MB') {
+      dataAmount = raw / 1000; // Convert MB to GB
+    } else {
+      dataAmount = raw; // Already in GB
+    }
   }
 
   // PLAN_VALIDITY is in hours — convert to days
   let validityDays: number | null = null;
   const validityStr = details.PLAN_VALIDITY;
   if (validityStr) {
-    validityDays = Math.floor(parseInt(validityStr) / 24);
+    const hours = parseInt(validityStr);
+    validityDays = hours >= 24 ? Math.floor(hours / 24) : (hours > 0 ? 1 : null);
   }
 
   const name = details.PLAN_TITLE || product.productFamilyName || `${product.providerName} ${product.countries?.[0] || ''}`;
 
+  // Parse PLAN_DETAILS JSON — contains heading, description, items[]
   let description: string | null = null;
+  let planItems: string[] = [];
   try {
     const planDetailsStr = details.PLAN_DETAILS;
-    if (planDetailsStr && planDetailsStr.startsWith('{')) {
-      const planDetails = JSON.parse(planDetailsStr);
-      description = planDetails.description || planDetails.heading || null;
-    } else {
-      description = planDetailsStr || null;
+    if (planDetailsStr) {
+      const trimmed = planDetailsStr.trim();
+      if (trimmed.startsWith('{')) {
+        const planDetails = JSON.parse(trimmed);
+        description = planDetails.description || planDetails.heading || null;
+        if (Array.isArray(planDetails.items)) {
+          planItems = planDetails.items;
+        }
+      } else {
+        description = trimmed || null;
+      }
     }
   } catch {
     description = details.PLAN_DETAILS || null;
   }
+
+  // Parse TAGS — JSON array of {item, color?}
+  let tags: Array<{ item: string; color?: string }> = [];
+  try {
+    if (details.TAGS) {
+      tags = JSON.parse(details.TAGS);
+    }
+  } catch {
+    // ignore
+  }
+
+  const isUnlimited = details.UNLIMITED === '1' || (dataAmount !== null && dataAmount >= 999);
 
   return {
     id: product.productId,
@@ -359,26 +404,34 @@ function transformProduct(product: MobiMatterRawProduct): Product {
     countries: product.countries || [],
     regions: product.regions || [],
     dataAmount,
-    dataUnit: dataAmount ? 'GB' : null,
+    dataUnit: dataUnit || 'GB',
     validityDays,
     price: product.retailPrice || 0,
     wholesalePrice: product.wholesalePrice || 0,
     currency: product.currencyCode || 'USD',
-    features: [],
-    isUnlimited: dataAmount !== null && dataAmount >= 999,
-    supportsHotspot: details.PLAN_HOTSPOT !== 'false' && details.PLAN_HOTSPOT !== '0',
-    supportsCalls: details.PLAN_INCLUDES_CALLS === 'true' || details.PLAN_INCLUDES_CALLS === '1',
-    supportsSms: details.PLAN_INCLUDES_SMS === 'true' || details.PLAN_INCLUDES_SMS === '1',
-    networkType: details.PLAN_NETWORK_TYPE || null,
-    activationPolicy: details.PLAN_ACTIVATION_POLICY || null,
-    ipRouting: details.PLAN_IP_ROUTING || null,
-    speedInfo: details.PLAN_SPEED || null,
-    topUpAvailable: details.PLAN_TOPUP_AVAILABLE === 'true' || details.PLAN_TOPUP_AVAILABLE === '1',
-    usageTracking: details.PLAN_USAGE_TRACKING === 'true' || details.PLAN_USAGE_TRACKING === '1',
+    features: planItems,
+    isUnlimited,
+    supportsHotspot: details.HOTSPOT === '1',
+    supportsCalls: details.HAS_CALLS === '1',
+    supportsSms: details.HAS_SMS === '1',
+    networkType: details.NETWORKS_SHORT || null,
+    activationPolicy: details.ACTIVATION_POLICY || null,
+    ipRouting: details.IP_BREAKOUT || null,
+    speedInfo: details.SPEED || null,
+    speedLong: details.SPEED_LONG || null,
+    topUpAvailable: details.TOPUP === '1',
+    usageTracking: details.USAGE_TRACKING || null,
+    is5G: details.FIVEG === '1',
+    tags,
+    externallyShown: details.EXTERNALLY_SHOWN !== '0',
+    additionalDetails: details.ADDITIONAL_DETAILS || null,
+    phoneNumberPrefix: details.PHONE_NUMBER_PREFIX || null,
     rank: product.rank || 0,
+    penalizedRank: product.penalizedRank || 0,
     productCategory: product.productCategory || 'esim_realtime',
-    productFamilyId: product.productFamilyId || '',
+    productFamilyId: product.productFamilyId || 0,
     productFamilyName: product.productFamilyName || '',
+    networkListId: product.networkListId || 0,
     updated: product.updated || '',
   };
 }
