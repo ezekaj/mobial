@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { getCountryBySlug } from "@/lib/countries"
 import { CountryProductGrid } from "./product-grid"
 import { BreadcrumbJsonLd } from "@/components/common/json-ld"
+import { db } from "@/lib/db"
 
 interface PageProps {
   params: Promise<{ country: string }>
@@ -38,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 const STEPS = [
   {
@@ -59,16 +60,53 @@ const STEPS = [
 ]
 
 async function getCountryProducts(countryCode: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
   try {
-    const res = await fetch(
-      `${baseUrl}/api/products?country=${countryCode}&limit=20&sortBy=price_asc`,
-      { next: { revalidate: 3600 } }
-    )
-    if (!res.ok) return []
-    const data = await res.json()
-    return data?.data?.products || []
-  } catch {
+    const products = await db.product.findMany({
+      where: {
+        isActive: true,
+        externallyShown: true,
+        category: 'esim_realtime',
+        countries: { contains: countryCode },
+      },
+      orderBy: { price: 'asc' },
+      take: 20,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        provider: true,
+        price: true,
+        originalPrice: true,
+        dataAmount: true,
+        dataUnit: true,
+        isUnlimited: true,
+        validityDays: true,
+        countries: true,
+        regions: true,
+        networks: true,
+        providerLogo: true,
+        speedInfo: true,
+        networkType: true,
+        activationPolicy: true,
+        isActive: true,
+        topUpAvailable: true,
+        penalizedRank: true,
+        category: true,
+      },
+    })
+
+    return products.map(p => ({
+      ...p,
+      countries: p.countries ? JSON.parse(p.countries) : [],
+      regions: p.regions ? JSON.parse(p.regions) : [],
+      networks: p.networks ?? undefined,
+      providerLogo: p.providerLogo ?? undefined,
+      speedInfo: p.speedInfo ?? undefined,
+      networkType: p.networkType ?? undefined,
+      activationPolicy: p.activationPolicy ?? undefined,
+    }))
+  } catch (error) {
+    console.error('[getCountryProducts] DB query failed:', error)
     return []
   }
 }
