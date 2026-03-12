@@ -63,6 +63,7 @@ function CompareColumn({ item }: { item: CompareItem }) {
         <button
           onClick={() => removeItem(item.id)}
           className="p-1 hover:bg-muted rounded shrink-0"
+          aria-label={`Remove ${item.name} from comparison`}
         >
           <X className="h-3 w-3" />
         </button>

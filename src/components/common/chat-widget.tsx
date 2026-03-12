@@ -30,6 +30,7 @@ export function ChatWidget() {
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1 hover:bg-muted rounded-lg"
+                aria-label="Close chat menu"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -83,6 +84,7 @@ export function ChatWidget() {
             ? "bg-muted text-foreground"
             : "bg-primary text-primary-foreground"
         )}
+        aria-label={isOpen ? "Close chat" : "Open chat"}
       >
         {isOpen ? (
           <X className="h-6 w-6" />
