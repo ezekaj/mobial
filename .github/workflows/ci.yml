@@ -52,6 +52,15 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      MOBIMATTER_MERCHANT_ID: "test_merchant_id"
+      MOBIMATTER_API_KEY: "test_api_key"
+      JWT_SECRET: "test_jwt_secret_not_for_production"
+      ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      STRIPE_SECRET_KEY: "sk_test_ci_placeholder"
+      STRIPE_WEBHOOK_SECRET: "whsec_test_ci_placeholder"
+      NEXT_PUBLIC_BASE_URL: "https://mobialo.eu"
     steps:
       - uses: actions/checkout@v4
 
@@ -64,7 +73,15 @@ jobs:
 
       - run: npx prisma generate
 
-      - run: npm test
+      - run: npm test -- --coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
 
   build:
     name: Build
