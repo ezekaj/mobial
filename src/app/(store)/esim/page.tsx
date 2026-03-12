@@ -5,6 +5,7 @@ import { Globe, ArrowRight } from "lucide-react"
 import { countries, getAllCountrySlugs } from "@/lib/countries"
 import { regions } from "@/lib/regions"
 import { DestinationGrid } from "./destination-grid"
+import { db } from "@/lib/db"
 
 export const revalidate = 3600
 
@@ -29,46 +30,49 @@ async function getCountriesWithPricing(): Promise<
     productCount: number
   }>
 > {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-  const slugs = getAllCountrySlugs()
+  const products = await db.product.findMany({
+    where: {
+      isActive: true,
+      externallyShown: true,
+      category: 'esim_realtime',
+    },
+    select: { countries: true, price: true },
+    orderBy: { price: 'asc' },
+  })
 
-  const results = await Promise.all(
-    slugs.map(async (slug) => {
-      const country = countries[slug]
-      try {
-        const res = await fetch(
-          `${baseUrl}/api/products?country=${country.code}&limit=1&sortBy=price_asc`,
-          { next: { revalidate: 3600 } }
-        )
-        if (!res.ok) {
-          return {
-            slug,
-            ...country,
-            minPrice: null,
-            productCount: 0,
-          }
-        }
-        const data = await res.json()
-        const products = data?.data?.products || []
-        const total = data?.data?.pagination?.total || 0
-        return {
-          slug,
-          ...country,
-          minPrice: products[0]?.price ?? null,
-          productCount: total,
-        }
-      } catch {
-        return {
-          slug,
-          ...country,
-          minPrice: null,
-          productCount: 0,
+  const countryMap = new Map<string, { minPrice: number; count: number }>()
+  for (const p of products) {
+    if (!p.countries) continue
+    try {
+      const codes: string[] = JSON.parse(p.countries)
+      for (const code of codes) {
+        const existing = countryMap.get(code)
+        if (!existing) {
+          countryMap.set(code, { minPrice: p.price, count: 1 })
+        } else {
+          existing.count++
+          if (p.price < existing.minPrice) existing.minPrice = p.price
         }
       }
-    })
-  )
+    } catch {
+      // Skip invalid JSON
+    }
+  }
 
-  return results.sort((a, b) => b.productCount - a.productCount)
+  const slugs = getAllCountrySlugs()
+  return slugs
+    .map(slug => {
+      const country = countries[slug]
+      const data = countryMap.get(country.code)
+      return {
+        slug,
+        ...country,
+        minPrice: data?.minPrice ?? null,
+        productCount: data?.count ?? 0,
+      }
+    })
+    .filter(c => c.productCount > 0)
+    .sort((a, b) => b.productCount - a.productCount)
 }
 
 export default async function EsimDestinationsPage() {
