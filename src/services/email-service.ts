@@ -541,3 +541,70 @@ export async function sendTravelAgainReminder(
     return { success: false, error: message };
   }
 }
+
+export async function sendAdminAlert(params: {
+  type: string;
+  subject: string;
+  details: Record<string, unknown>;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_FROM;
+
+    if (!adminEmail) {
+      console.warn('[EmailService] No ADMIN_EMAIL or SMTP_FROM configured for admin alerts');
+      return { success: false, error: 'No admin email configured' };
+    }
+
+    const detailRows = Object.entries(params.details)
+      .map(
+        ([key, value]) => `<tr>
+          <td style="padding:6px 12px;color:#9ca3af;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);font-weight:500;">
+            ${escapeHtml(key)}
+          </td>
+          <td style="padding:6px 12px;color:#e5e7eb;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);word-break:break-all;">
+            ${escapeHtml(String(value ?? ''))}
+          </td>
+        </tr>`
+      )
+      .join('');
+
+    const html = layout(`
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#ffffff;">Admin Alert</h1>
+      <p style="margin:0 0 8px;font-size:14px;color:#9ca3af;line-height:1.6;">
+        Type: <span style="color:#4da6e8;font-weight:600;">${escapeHtml(params.type)}</span>
+      </p>
+      <p style="margin:0 0 24px;font-size:14px;color:#9ca3af;line-height:1.6;">
+        ${escapeHtml(params.subject)}
+      </p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+        style="margin:0 0 24px;background:rgba(255,255,255,0.03);border-radius:12px;overflow:hidden;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid rgba(255,255,255,0.08);">Field</th>
+            <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid rgba(255,255,255,0.08);">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${detailRows}
+        </tbody>
+      </table>
+
+      <p style="margin:0;font-size:12px;color:#6b7280;">
+        Sent at ${new Date().toISOString()}
+      </p>
+    `);
+
+    const result = await sendEmail({
+      to: adminEmail,
+      subject: `[MobiaL Alert] ${params.subject}`,
+      html,
+    });
+
+    return { success: result.success, error: result.error };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to send admin alert';
+    console.error('[EmailService] sendAdminAlert error:', message);
+    return { success: false, error: message };
+  }
+}
