@@ -19,6 +19,8 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { toast } from "sonner"
+import { GoogleSignIn } from "./google-sign-in"
+import { Separator } from "@/components/ui/separator"
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -92,6 +94,17 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
         <p className="text-sm text-muted-foreground">
           Enter your credentials to access your account
         </p>
+      </div>
+
+      <GoogleSignIn onSuccess={onSuccess} text="signin_with" />
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <Separator className="w-full" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">or</span>
+        </div>
       </div>
 
       <Form {...form}>

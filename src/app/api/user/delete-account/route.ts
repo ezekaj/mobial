@@ -52,9 +52,13 @@ export async function POST(request: NextRequest) {
       return errorResponse('User not found', 404);
     }
     
-    // Verify password
+    // Verify password (Google-only accounts don't have a password)
+    if (!fullUser.passwordHash) {
+      return errorResponse('This account uses Google sign-in. Please contact support for account deletion.', 400);
+    }
+
     const isValidPassword = await verifyPassword(password, fullUser.passwordHash);
-    
+
     if (!isValidPassword) {
       return errorResponse('Invalid password', 401);
     }

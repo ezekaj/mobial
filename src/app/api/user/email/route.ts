@@ -73,6 +73,10 @@ export async function PUT(request: NextRequest) {
       return errorResponse('New email must be different from current email', 400);
     }
 
+    if (!dbUser.passwordHash) {
+      return errorResponse('This account uses Google sign-in. Email cannot be changed via password.', 400);
+    }
+
     const isValidPassword = await verifyPassword(currentPassword, dbUser.passwordHash);
     if (!isValidPassword) {
       return errorResponse('Current password is incorrect', 401);

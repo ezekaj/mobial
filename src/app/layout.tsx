@@ -17,6 +17,7 @@ import { NotificationPrompt } from "@/components/common/notification-prompt"
 import { InstallPrompt } from "@/components/common/install-prompt"
 import { MonitoringProvider } from "@/components/providers/monitoring-provider"
 import { CookieConsent } from "@/components/gdpr/cookie-consent"
+import Script from "next/script"
 
 const inter = Inter({
   subsets: ["latin", "latin-ext", "cyrillic", "greek"],
@@ -89,6 +90,9 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning className="dark">
+      <head>
+        <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload" />
+      </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ReactQueryProvider>

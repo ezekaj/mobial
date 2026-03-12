@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/form"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
+import { GoogleSignIn } from "./google-sign-in"
+import { Separator } from "@/components/ui/separator"
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -112,6 +114,17 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
         <p className="text-sm text-muted-foreground">
           Enter your details to get started
         </p>
+      </div>
+
+      <GoogleSignIn onSuccess={onSuccess} text="signup_with" />
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <Separator className="w-full" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">or</span>
+        </div>
       </div>
 
       <Form {...form}>

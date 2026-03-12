@@ -101,6 +101,11 @@ export async function POST(request: NextRequest) {
       return errorResponse('Account not found', 404);
     }
     
+    // Check if user has a password (Google-only accounts don't)
+    if (!user.passwordHash) {
+      return errorResponse('This account uses Google sign-in. Please use the Google button to log in.', 400);
+    }
+
     // Verify password
     const isValidPassword = await verifyPassword(password, user.passwordHash);
     

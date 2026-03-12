@@ -30,12 +30,16 @@ model User {
   email             String      @unique
   emailVerified     DateTime?
   name              String?
-  passwordHash      String
+  passwordHash      String?
   phone             String?
   phoneVerified     DateTime?
   avatar            String?
   role              UserRole    @default(CUSTOMER)
   status            UserStatus  @default(PENDING_VERIFICATION)
+
+  // OAuth
+  googleId          String?     @unique
+  authProvider      String      @default("email")  // "email" | "google"
   
   // Two-Factor Authentication
   twoFactorEnabled  Boolean     @default(false)
