@@ -16,12 +16,7 @@ import { ChatWidget } from "@/components/common/chat-widget"
 import { NotificationPrompt } from "@/components/common/notification-prompt"
 import { InstallPrompt } from "@/components/common/install-prompt"
 import { MonitoringProvider } from "@/components/providers/monitoring-provider"
-import dynamic from "next/dynamic"
-
-const CookieConsent = dynamic(
-  () => import("@/components/gdpr/cookie-consent").then((m) => m.CookieConsent),
-  { ssr: false }
-)
+import { CookieConsent } from "@/components/gdpr/cookie-consent"
 
 const inter = Inter({
   subsets: ["latin"],
