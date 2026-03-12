@@ -9,7 +9,7 @@ import { hashPassword, checkPasswordStrength } from '@/lib/password';
 import { generateTokenPair, generateEmailVerificationToken } from '@/lib/jwt';
 import { logAuditWithContext } from '@/lib/audit';
 import { db } from '@/lib/db';
-import { sendEmailVerification } from '@/services/email-service';
+import { sendEmailVerification, sendWelcome } from '@/services/email-service';
 import {
   successResponse,
   errorResponse,
@@ -106,6 +106,11 @@ export async function POST(request: NextRequest) {
     });
 
     await sendEmailVerification(user.email, verificationToken);
+
+    // Fire-and-forget welcome email
+    sendWelcome(user.email, user.name).catch((err) =>
+      console.error('[Register] Failed to send welcome email:', err)
+    );
 
     // Log audit event
     await logAuditWithContext({
