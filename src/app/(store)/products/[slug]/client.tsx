@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import useEmblaCarousel from "embla-carousel-react"
+import { useIsMobile } from "@/hooks/use-is-mobile"
 import {
   ArrowLeft,
   ShoppingCart,
@@ -29,7 +31,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useCart } from "@/contexts/cart-context"
 import { useCurrency } from "@/contexts/currency-context"
 import { ProductWithDetails } from "@/services/product-service"
@@ -511,87 +512,7 @@ export function ProductDetailClient({ product, relatedProducts, countryRelatedPr
           </div>
 
           {/* Product Details Tabs */}
-          <div className="mt-12">
-            <Tabs defaultValue="features" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto">
-                <TabsTrigger value="features">Features</TabsTrigger>
-                <TabsTrigger value="activation">Activation</TabsTrigger>
-                <TabsTrigger value="faq">FAQ</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="features" className="mt-8">
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {features.map((feature) => (
-                    <Card key={feature.title}>
-                      <CardContent className="p-6 text-center">
-                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                          <feature.icon className="h-6 w-6 text-primary" />
-                        </div>
-                        <h4 className="font-semibold mb-2">{feature.title}</h4>
-                        <p className="text-sm text-muted-foreground">{feature.description}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="activation" className="mt-8">
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="font-semibold text-lg mb-4">How to Activate Your eSIM</h3>
-                    <ol className="space-y-4 text-muted-foreground">
-                      <li className="flex gap-3">
-                        <span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium shrink-0">1</span>
-                        <span>After purchase, you will receive an email with your eSIM QR code</span>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium shrink-0">2</span>
-                        <span>Go to Settings → Cellular → Add eSIM on your device</span>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium shrink-0">3</span>
-                        <span>Scan the QR code or enter the activation code manually</span>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium shrink-0">4</span>
-                        <span>Your eSIM is now active and ready to use!</span>
-                      </li>
-                    </ol>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="faq" className="mt-8">
-                <Card>
-                  <CardContent className="p-6 space-y-6">
-                    <div>
-                      <h4 className="font-semibold mb-2">When does my eSIM activate?</h4>
-                      <p className="text-muted-foreground">Your eSIM activates when you first connect to a supported network in the coverage area. The validity period starts from the first connection.</p>
-                    </div>
-                    <Separator />
-                    <div>
-                      <h4 className="font-semibold mb-2">Can I use this eSIM for tethering?</h4>
-                      <p className="text-muted-foreground">
-                        {product.supportsHotspot
-                          ? "Yes, this eSIM supports tethering/hotspot, so you can share your connection with other devices."
-                          : "No, this eSIM does not support tethering. Please check our other plans for hotspot-compatible options."}
-                      </p>
-                    </div>
-                    <Separator />
-                    <div>
-                      <h4 className="font-semibold mb-2">What happens if I run out of data?</h4>
-                      <p className="text-muted-foreground">You can purchase additional data packages or get a new eSIM. We'll notify you when you're approaching your data limit.</p>
-                    </div>
-                    <Separator />
-                    <div>
-                      <h4 className="font-semibold mb-2">Is my device compatible?</h4>
-                      <p className="text-muted-foreground">Most modern smartphones support eSIM, including iPhone XR and later, Google Pixel 3 and later, and Samsung Galaxy S20 and later. Check your device settings to confirm eSIM support.</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
+          <ProductDetailTabs features={features} product={product} />
 
           {/* Related Products — Same Provider */}
           {relatedProducts.length > 0 && (
@@ -710,5 +631,148 @@ export function ProductDetailClient({ product, relatedProducts, countryRelatedPr
           </div>
         </div>
     </>
+  )
+}
+
+const TAB_LABELS = ["Features", "Activation", "FAQ"] as const
+
+function ProductDetailTabs({
+  features,
+  product,
+}: {
+  features: { icon: React.ComponentType<{ className?: string }>; title: string; description: string }[]
+  product: ProductWithDetails
+}) {
+  const isMobile = useIsMobile()
+  const [activeTab, setActiveTab] = useState(0)
+  const [emblaRef, emblaApi] = useEmblaCarousel({ watchDrag: isMobile })
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return
+    setActiveTab(emblaApi.selectedScrollSnap())
+  }, [emblaApi])
+
+  useEffect(() => {
+    if (!emblaApi) return
+    emblaApi.on("select", onSelect)
+    return () => { emblaApi.off("select", onSelect) }
+  }, [emblaApi, onSelect])
+
+  const scrollTo = useCallback(
+    (index: number) => {
+      setActiveTab(index)
+      emblaApi?.scrollTo(index)
+    },
+    [emblaApi]
+  )
+
+  const featuresPanel = (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {features.map((feature) => (
+        <Card key={feature.title}>
+          <CardContent className="p-6 text-center">
+            <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <feature.icon className="h-6 w-6 text-primary" />
+            </div>
+            <h4 className="font-semibold mb-2">{feature.title}</h4>
+            <p className="text-sm text-muted-foreground">{feature.description}</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+
+  const activationPanel = (
+    <Card>
+      <CardContent className="p-6">
+        <h3 className="font-semibold text-lg mb-4">How to Activate Your eSIM</h3>
+        <ol className="space-y-4 text-muted-foreground">
+          {[
+            "After purchase, you will receive an email with your eSIM QR code",
+            "Go to Settings \u2192 Cellular \u2192 Add eSIM on your device",
+            "Scan the QR code or enter the activation code manually",
+            "Your eSIM is now active and ready to use!",
+          ].map((step, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium shrink-0">
+                {i + 1}
+              </span>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ol>
+      </CardContent>
+    </Card>
+  )
+
+  const faqPanel = (
+    <Card>
+      <CardContent className="p-6 space-y-6">
+        {[
+          {
+            q: "When does my eSIM activate?",
+            a: "Your eSIM activates when you first connect to a supported network in the coverage area. The validity period starts from the first connection.",
+          },
+          {
+            q: "Can I use this eSIM for tethering?",
+            a: product.supportsHotspot
+              ? "Yes, this eSIM supports tethering/hotspot, so you can share your connection with other devices."
+              : "No, this eSIM does not support tethering. Please check our other plans for hotspot-compatible options.",
+          },
+          {
+            q: "What happens if I run out of data?",
+            a: "You can purchase additional data packages or get a new eSIM. We'll notify you when you're approaching your data limit.",
+          },
+          {
+            q: "Is my device compatible?",
+            a: "Most modern smartphones support eSIM, including iPhone XR and later, Google Pixel 3 and later, and Samsung Galaxy S20 and later. Check your device settings to confirm eSIM support.",
+          },
+        ].map((item, i, arr) => (
+          <div key={i}>
+            <h4 className="font-semibold mb-2">{item.q}</h4>
+            <p className="text-muted-foreground">{item.a}</p>
+            {i < arr.length - 1 && <Separator className="mt-6" />}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+
+  const panels = [featuresPanel, activationPanel, faqPanel]
+
+  return (
+    <div className="mt-12">
+      {/* Tab indicators */}
+      <div className="grid w-full grid-cols-3 max-w-md mx-auto bg-muted/50 rounded-lg p-1 mb-8">
+        {TAB_LABELS.map((label, i) => (
+          <button
+            key={label}
+            onClick={() => scrollTo(i)}
+            className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
+              activeTab === i
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Swipeable content on mobile, static on desktop */}
+      {isMobile ? (
+        <div ref={emblaRef} className="overflow-hidden">
+          <div className="flex">
+            {panels.map((panel, i) => (
+              <div key={i} className="min-w-0 shrink-0 grow-0 basis-full px-1">
+                {panel}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        panels[activeTab]
+      )}
+    </div>
   )
 }

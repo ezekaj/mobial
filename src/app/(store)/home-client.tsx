@@ -12,9 +12,16 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselDots,
+} from "@/components/ui/carousel"
 import { useAuth } from "@/components/providers/auth-provider"
 import { CurrencySelector } from "@/components/common/currency-selector"
 import { useCurrency } from "@/contexts/currency-context"
+import { useIsMobile } from "@/hooks/use-is-mobile"
 import { useTranslations } from "next-intl"
 import { HomeProduct } from "@/types/product"
 import Link from "next/link"
@@ -114,6 +121,56 @@ export function CTASection() {
   )
 }
 
+function ProductCard({
+  product,
+  formatPrice,
+  viewLabel,
+}: {
+  product: Product
+  formatPrice: (amount: number) => string
+  viewLabel: string
+}) {
+  return (
+    <Link href={`/products/${product.slug || product.id}`}>
+      <Card className="group hover:shadow-xl transition-all border-border/50 h-full">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <Badge variant="outline" className="text-[10px] font-bold">
+              {product.provider}
+            </Badge>
+            {product.networkType && (
+              <Badge className="bg-primary/10 text-primary border-0 text-[10px] font-black">
+                {product.networkType}
+              </Badge>
+            )}
+          </div>
+          <div>
+            <h3 className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors">
+              {product.name}
+            </h3>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+              {product.dataAmount && (
+                <span>
+                  {product.dataAmount >= 1
+                    ? `${product.dataAmount} GB`
+                    : `${product.dataAmount * 1000} MB`}
+                </span>
+              )}
+              {product.validityDays && <span>{product.validityDays}d</span>}
+            </div>
+          </div>
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xl font-black" suppressHydrationWarning>{formatPrice(product.price)}</span>
+            <span className="text-xs font-bold text-primary group-hover:translate-x-1 transition-transform flex items-center">
+              {viewLabel} <ChevronRight className="h-3 w-3 ml-0.5" />
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
 function ProductGrid({
   products,
   formatPrice,
@@ -123,6 +180,7 @@ function ProductGrid({
 }) {
   const t = useTranslations('home')
   const tc = useTranslations('common')
+  const isMobile = useIsMobile()
 
   if (products.length === 0) {
     return (
@@ -132,46 +190,27 @@ function ProductGrid({
     )
   }
 
+  const items = products.slice(0, 8)
+
+  if (isMobile) {
+    return (
+      <Carousel opts={{ align: "start", loop: false, dragFree: true }}>
+        <CarouselContent className="-ml-3">
+          {items.map((product) => (
+            <CarouselItem key={product.id} className="pl-3 basis-[75%]">
+              <ProductCard product={product} formatPrice={formatPrice} viewLabel={tc('view')} />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselDots />
+      </Carousel>
+    )
+  }
+
   return (
-    <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible sm:snap-none sm:pb-0">
-      {products.slice(0, 8).map((product) => (
-        <Link key={product.id} href={`/products/${product.slug || product.id}`} className="min-w-[260px] snap-start shrink-0 sm:shrink sm:min-w-0">
-          <Card className="group hover:shadow-xl transition-all border-border/50 h-full">
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <Badge variant="outline" className="text-[10px] font-bold">
-                  {product.provider}
-                </Badge>
-                {product.networkType && (
-                  <Badge className="bg-primary/10 text-primary border-0 text-[10px] font-black">
-                    {product.networkType}
-                  </Badge>
-                )}
-              </div>
-              <div>
-                <h3 className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors">
-                  {product.name}
-                </h3>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
-                  {product.dataAmount && (
-                    <span>
-                      {product.dataAmount >= 1
-                        ? `${product.dataAmount} GB`
-                        : `${product.dataAmount * 1000} MB`}
-                    </span>
-                  )}
-                  {product.validityDays && <span>{product.validityDays}d</span>}
-                </div>
-              </div>
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-xl font-black" suppressHydrationWarning>{formatPrice(product.price)}</span>
-                <span className="text-xs font-bold text-primary group-hover:translate-x-1 transition-transform flex items-center">
-                  {tc('view')} <ChevronRight className="h-3 w-3 ml-0.5" />
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {items.map((product) => (
+        <ProductCard key={product.id} product={product} formatPrice={formatPrice} viewLabel={tc('view')} />
       ))}
     </div>
   )
