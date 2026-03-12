@@ -121,45 +121,40 @@ export default function ReferralsPage() {
 
   if (authLoading || loading) {
     return (
-      <>
-        <main className="min-h-screen pt-24 pb-16 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </main>
-      </>
+      <div className="pt-24 pb-16 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     )
   }
 
   if (!isAuthenticated) {
     return (
-      <>
-        <main className="min-h-screen pt-24 pb-16">
-          <div className="container max-w-2xl mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center space-y-6"
-            >
-              <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                <Gift className="h-10 w-10 text-primary" />
-              </div>
-              <h1 className="text-3xl font-bold">Refer Friends, Earn Rewards</h1>
-              <p className="text-lg text-muted-foreground max-w-md mx-auto">
-                Share your referral code with friends. When they sign up, you both get $3 credit.
-              </p>
-              <Button size="lg" onClick={() => openAuthModal("login")}>
-                Sign In to Get Your Code
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </motion.div>
-          </div>
-        </main>
-      </>
+      <div className="pt-24 pb-16">
+        <div className="container max-w-2xl mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center space-y-6"
+          >
+            <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+              <Gift className="h-10 w-10 text-primary" />
+            </div>
+            <h1 className="text-3xl font-bold">Refer Friends, Earn Rewards</h1>
+            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+              Share your referral code with friends. When they sign up, you both get $3 credit.
+            </p>
+            <Button size="lg" onClick={() => openAuthModal("login")}>
+              Sign In to Get Your Code
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </motion.div>
+        </div>
+      </div>
     )
   }
 
   return (
-    <>
-      <main className="min-h-screen pt-24 pb-16">
+      <div className="pt-24 pb-16">
         <div className="container max-w-4xl mx-auto px-4 space-y-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -412,7 +407,6 @@ export default function ReferralsPage() {
             </Card>
           </motion.div>
         </div>
-      </main>
-    </>
+      </div>
   )
 }

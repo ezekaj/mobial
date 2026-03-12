@@ -102,7 +102,6 @@ export default function HomePage() {
       <WebSiteJsonLd baseUrl={BASE_URL} />
       <BreadcrumbJsonLd baseUrl={BASE_URL} items={[{ name: "Home" }]} />
 
-      <main className="flex-1">
         {/* Hero Section */}
         <section className="relative pt-20 pb-32 overflow-hidden">
           <div className="absolute inset-0 -z-10 overflow-hidden">
@@ -372,7 +371,6 @@ export default function HomePage() {
 
         {/* CTA Section (Client Component - needs auth) */}
         <CTASection />
-      </main>
 
     </div>
   )
