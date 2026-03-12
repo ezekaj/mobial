@@ -1,4 +1,7 @@
 import { db } from "@/lib/db"
+import { createOrder as mobimatterCreateOrder, completeOrder as mobimatterCompleteOrder } from "@/lib/mobimatter"
+import { encryptEsimField } from "@/lib/esim-encryption"
+import { logAudit } from "@/lib/audit"
 
 const TRIAL_DESTINATIONS = [
   { country: "TR", name: "Turkey", label: "Popular" },
@@ -57,7 +60,7 @@ export async function claimTrial(params: {
       dataAmount: { gte: 0.5 },
     },
     orderBy: { price: "asc" },
-    select: { id: true, name: true, price: true, validityDays: true },
+    select: { id: true, name: true, price: true, validityDays: true, mobimatterId: true },
   })
 
   if (!product) {
@@ -76,6 +79,58 @@ export async function claimTrial(params: {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days to activate
     },
   })
+
+  // Provision eSIM via MobiMatter
+  try {
+    const pendingOrder = await mobimatterCreateOrder({
+      productId: product.mobimatterId,
+      productCategory: "esim_realtime",
+      label: `TRIAL-${trial.id.slice(0, 8)}`,
+    })
+
+    const fulfilledOrder = await mobimatterCompleteOrder(pendingOrder.orderId)
+    const lineItem = fulfilledOrder.lineItem
+
+    if (lineItem) {
+      await db.freeTrial.update({
+        where: { id: trial.id },
+        data: {
+          mobimatterOrderId: fulfilledOrder.orderId,
+          esimQrCode: encryptEsimField(lineItem.lpa || lineItem.qrCode),
+          esimActivationCode: encryptEsimField(lineItem.activationCode),
+          esimSmdpAddress: encryptEsimField(lineItem.smdpAddress),
+          status: "ACTIVATED",
+          activatedAt: new Date(),
+        },
+      })
+    }
+
+    await logAudit({
+      action: "order_complete",
+      entity: "free_trial",
+      entityId: trial.id,
+      newValues: {
+        email,
+        destination: params.destination,
+        mobimatterOrderId: fulfilledOrder.orderId,
+      },
+    })
+  } catch (error) {
+    console.error(`[FreeTrial] MobiMatter provisioning failed for trial ${trial.id}:`, error)
+
+    await logAudit({
+      action: "security_alert",
+      entity: "free_trial",
+      entityId: trial.id,
+      newValues: {
+        email,
+        destination: params.destination,
+        error: error instanceof Error ? error.message : "Unknown error",
+        status: "provisioning_failed",
+      },
+    })
+    // Trial stays in CLAIMED status — can be retried manually or via cron
+  }
 
   return {
     success: true,
