@@ -24,6 +24,15 @@ import { ProductsSection, CTASection, LazyReviewsSection } from "./home-client"
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://mobialo.eu"
 
+const REGION_EMOJI: Record<string, string> = {
+  europe: "\u{1F1EA}\u{1F1FA}",
+  asia: "\u{1F30F}",
+  americas: "\u{1F30E}",
+  "middle-east": "\u{1F54C}",
+  oceania: "\u{1F3DD}\uFE0F",
+  africa: "\u{1F30D}",
+}
+
 async function HomepageProducts() {
   const [popularResult, latestResult] = await Promise.all([
     getProducts({ sortBy: "rank", category: "esim_realtime", limit: 8 }),
@@ -140,7 +149,7 @@ export default async function HomePage() {
                     asChild
                   >
                     <Link href={`/esim/region/${region.slug}`}>
-                      <Globe className="h-4 w-4 mr-2 text-primary" />
+                      <span className="text-lg mr-2">{REGION_EMOJI[region.slug] || "\u{1F30D}"}</span>
                       <span className="font-semibold">{region.name}</span>
                       <span className="text-xs text-muted-foreground ml-2">
                         {region.countries.length}+
@@ -256,7 +265,9 @@ export default async function HomePage() {
                   href={`/esim/region/${region.slug}`}
                   className="min-w-[140px] snap-start p-6 rounded-2xl bg-card border border-border/50 hover:shadow-xl hover:border-primary/20 transition-all group text-center shrink-0 md:shrink md:min-w-0"
                 >
-                  <Globe className="h-8 w-8 text-primary mx-auto mb-3 group-hover:scale-110 transition-transform" />
+                  <div className="text-3xl mx-auto mb-3 group-hover:scale-110 transition-transform">
+                    {REGION_EMOJI[region.slug] || "\u{1F30D}"}
+                  </div>
                   <h3 className="font-bold text-sm group-hover:text-primary transition-colors">
                     {region.name}
                   </h3>
