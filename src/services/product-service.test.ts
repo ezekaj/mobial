@@ -120,9 +120,9 @@ function makeDbProduct(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks()
   // Add updateMany mock since it's not in the global setup
-  ;(mockDb.product as Record<string, unknown>).updateMany = vi.fn().mockResolvedValue({ count: 0 })
+  ;(mockDb.product as unknown as Record<string, unknown>).updateMany = vi.fn().mockResolvedValue({ count: 0 })
   // Add groupBy mock
-  ;(mockDb.product as Record<string, unknown>).groupBy = vi.fn().mockResolvedValue([])
+  ;(mockDb.product as unknown as Record<string, unknown>).groupBy = vi.fn().mockResolvedValue([])
 })
 
 describe('generateSlug', () => {
