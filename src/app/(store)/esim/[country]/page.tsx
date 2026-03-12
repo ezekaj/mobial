@@ -59,17 +59,8 @@ const STEPS = [
   },
 ]
 
-async function getCountryProducts(countryCode: string): Promise<{ products: any[]; debug: string }> {
+async function getCountryProducts(countryCode: string) {
   try {
-    const count = await db.product.count({
-      where: {
-        isActive: true,
-        externallyShown: true,
-        category: 'esim_realtime',
-        countries: { contains: countryCode },
-      },
-    })
-
     const products = await db.product.findMany({
       where: {
         isActive: true,
@@ -104,7 +95,7 @@ async function getCountryProducts(countryCode: string): Promise<{ products: any[
       },
     })
 
-    const mapped = products.map(p => ({
+    return products.map(p => ({
       ...p,
       countries: p.countries ? JSON.parse(p.countries) : [],
       regions: p.regions ? JSON.parse(p.regions) : [],
@@ -114,12 +105,9 @@ async function getCountryProducts(countryCode: string): Promise<{ products: any[
       networkType: p.networkType ?? undefined,
       activationPolicy: p.activationPolicy ?? undefined,
     }))
-
-    return { products: mapped, debug: `OK: count=${count}, returned=${mapped.length}` }
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error)
     console.error('[getCountryProducts] DB query failed:', error)
-    return { products: [], debug: `ERROR: ${msg}` }
+    return []
   }
 }
 
@@ -131,15 +119,12 @@ export default async function CountryPage({ params }: PageProps) {
     notFound()
   }
 
-  const { products, debug } = await getCountryProducts(country.code)
+  const products = await getCountryProducts(country.code)
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://mobialo.eu"
 
   return (
     <>
-      {/* DEBUG — remove after verification */}
-      <div data-debug={debug} style={{ display: 'none' }} />
-
       <BreadcrumbJsonLd
         baseUrl={baseUrl}
         items={[
