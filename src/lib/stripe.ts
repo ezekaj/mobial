@@ -30,7 +30,6 @@ export async function createCheckoutSession(params: {
   const { orderId, orderNumber, email, amount: _amount, currency = 'usd', isTopUp, parentMobimatterOrderId, items } = params;
 
   const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
     customer_email: email,
     client_reference_id: orderId,
     metadata: {
