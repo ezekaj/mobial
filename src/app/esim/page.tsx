@@ -8,7 +8,7 @@ import { countries, getAllCountrySlugs } from "@/lib/countries"
 import { regions } from "@/lib/regions"
 import { DestinationGrid } from "./destination-grid"
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 3600
 
 export const metadata: Metadata = {
   title: "eSIM Plans by Country",
