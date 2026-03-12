@@ -38,23 +38,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export const revalidate = 3600
+export const revalidate = 300
 
 async function getRegionProducts(countryCodes: string[]) {
   try {
-    const countriesToFetch = countryCodes.slice(0, 5)
+    const regionCodeSet = new Set(countryCodes)
 
-    const products = await db.product.findMany({
+    const allProducts = await db.product.findMany({
       where: {
         isActive: true,
         externallyShown: true,
         category: 'esim_realtime',
-        OR: countriesToFetch.map(code => ({
-          countries: { contains: code },
-        })),
       },
       orderBy: { price: 'asc' },
-      take: 20,
       select: {
         id: true,
         name: true,
@@ -80,10 +76,25 @@ async function getRegionProducts(countryCodes: string[]) {
       },
     })
 
-    return products.map(p => ({
+    const matched = allProducts.filter(p => {
+      if (!p.countries) return false
+      try {
+        const codes: string[] = JSON.parse(p.countries)
+        return codes.some(code => regionCodeSet.has(code))
+      } catch {
+        return false
+      }
+    })
+
+    return matched.slice(0, 20).map(p => ({
       ...p,
       countries: p.countries ? JSON.parse(p.countries) : [],
       regions: p.regions ? JSON.parse(p.regions) : [],
+      networks: p.networks ?? undefined,
+      providerLogo: p.providerLogo ?? undefined,
+      speedInfo: p.speedInfo ?? undefined,
+      networkType: p.networkType ?? undefined,
+      activationPolicy: p.activationPolicy ?? undefined,
     }))
   } catch (error) {
     console.error('[getRegionProducts] DB query failed:', error)
