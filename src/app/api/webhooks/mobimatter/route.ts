@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { logAudit } from '@/lib/audit';
+import { secureCompare } from '@/lib/encryption';
 
 interface MobiMatterWebhookPayload {
   eventType: string;
@@ -18,7 +19,8 @@ interface MobiMatterWebhookPayload {
 function validateWebhookRequest(request: NextRequest): boolean {
   const secret = process.env.MOBIMATTER_WEBHOOK_SECRET;
   if (!secret) {
-    return true;
+    console.warn('[MobiMatter Webhook] MOBIMATTER_WEBHOOK_SECRET is not configured — rejecting all requests');
+    return false;
   }
 
   const signature = request.headers.get('x-webhook-secret')
@@ -29,7 +31,8 @@ function validateWebhookRequest(request: NextRequest): boolean {
     return false;
   }
 
-  return signature === secret || signature === `Bearer ${secret}`;
+  const rawSignature = signature.startsWith('Bearer ') ? signature.slice(7) : signature;
+  return secureCompare(rawSignature, secret);
 }
 
 export async function POST(request: NextRequest) {

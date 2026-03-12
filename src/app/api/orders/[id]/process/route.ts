@@ -9,9 +9,9 @@ import {
   successResponse,
   errorResponse,
   parseJsonBody,
-  getAuthUser,
+  requireAdmin,
 } from '@/lib/auth-helpers';
-import { processOrderWithMobimatter, getOrderById } from '@/services/order-service';
+import { processOrderWithMobimatter } from '@/services/order-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -36,33 +36,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return errorResponse('Order ID is required', 400);
     }
 
-    // Check authentication
-    const user = await getAuthUser(request);
-
-    // This is typically an internal endpoint
-    // Could be called by:
-    // 1. Admin
-    // 2. Payment webhook
-    // 3. Internal system
-    // For security, we require authentication
-    if (!user) {
-      return errorResponse('Authentication required', 401);
-    }
-
-    // Only admin or system can process orders
-    // In a real system, this might also accept webhook signatures
-    if (user.role !== 'ADMIN') {
-      // Check if user owns this order (for payment callback scenario)
-      const order = await getOrderById(id);
-      
-      if (!order) {
-        return errorResponse('Order not found', 404);
-      }
-
-      if (order.userId !== user.id) {
-        return errorResponse('Access denied', 403);
-      }
-    }
+    const user = await requireAdmin(request);
 
     // Parse optional body for additional parameters
     const body = await parseJsonBody<{

@@ -3,6 +3,7 @@
  * Functions for order management and processing
  */
 
+import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { logAudit } from '@/lib/audit';
 import { createOrder as mobimatterCreateOrder, completeOrder as mobimatterCompleteOrder } from '@/lib/mobimatter';
@@ -47,9 +48,10 @@ export interface OrderFilters {
  */
 export function generateOrderNumber(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const bytes = crypto.randomBytes(8);
   let result = 'MBL-';
   for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    result += chars.charAt(bytes[i] % chars.length);
   }
   return result;
 }

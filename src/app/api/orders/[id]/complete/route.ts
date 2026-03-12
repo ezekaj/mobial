@@ -8,7 +8,7 @@ import { NextRequest } from 'next/server';
 import {
   successResponse,
   errorResponse,
-  getAuthUser,
+  requireAdmin,
 } from '@/lib/auth-helpers';
 import { completeOrder, getOrderById } from '@/services/order-service';
 
@@ -34,25 +34,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return errorResponse('Order ID is required', 400);
     }
 
-    // Check authentication - typically admin only
-    const user = await getAuthUser(request);
+    const user = await requireAdmin(request);
 
-    if (!user) {
-      return errorResponse('Authentication required', 401);
-    }
-
-    // Get the order first to check permissions
     const order = await getOrderById(id);
 
     if (!order) {
       return errorResponse('Order not found', 404);
-    }
-
-    // Only admin or the order owner can complete
-    if (user.role !== 'ADMIN') {
-      if (order.userId !== user.id) {
-        return errorResponse('Access denied', 403);
-      }
     }
 
     // Complete the order

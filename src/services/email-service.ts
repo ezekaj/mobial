@@ -1,4 +1,5 @@
 import { sendEmail } from '@/lib/email';
+import { escapeHtml } from '@/lib/sanitize';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -84,7 +85,7 @@ export async function sendOrderConfirmation(
       .map(
         (item) => `<tr>
           <td style="padding:8px 0;color:#d1d5db;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.04);">
-            ${item.productName}${item.quantity > 1 ? ` &times; ${item.quantity}` : ''}
+            ${escapeHtml(item.productName)}${item.quantity > 1 ? ` &times; ${item.quantity}` : ''}
           </td>
           <td style="padding:8px 0;color:#d1d5db;font-size:14px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.04);">
             $${item.totalPrice.toFixed(2)}
@@ -107,7 +108,7 @@ export async function sendOrderConfirmation(
     const html = layout(`
       <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#ffffff;">Order Confirmed</h1>
       <p style="margin:0 0 24px;font-size:14px;color:#9ca3af;">
-        Order <span style="color:#4da6e8;font-weight:600;">#${orderNumber}</span>
+        Order <span style="color:#4da6e8;font-weight:600;">#${escapeHtml(orderNumber)}</span>
       </p>
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
@@ -129,7 +130,7 @@ export async function sendOrderConfirmation(
 
     const result = await sendEmail({
       to: email,
-      subject: `Your MobiaL eSIM Order #${orderNumber}`,
+      subject: `Your MobiaL eSIM Order #${escapeHtml(orderNumber)}`,
       html,
     });
 
@@ -293,7 +294,7 @@ export async function sendWelcome(
     const html = layout(`
       <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#ffffff;">Welcome to MobiaL</h1>
       <p style="margin:0 0 24px;font-size:14px;color:#9ca3af;line-height:1.6;">
-        Hey ${displayName}, your account is ready. Browse eSIM plans for 190+ countries and get connected in minutes.
+        Hey ${escapeHtml(displayName)}, your account is ready. Browse eSIM plans for 190+ countries and get connected in minutes.
       </p>
 
       ${button(`${BASE_URL}/destinations`, 'Browse Destinations')}
@@ -326,7 +327,7 @@ export async function sendInstallationReminder(
     const html = layout(`
       <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#ffffff;">Time to install your eSIM</h1>
       <p style="margin:0 0 24px;font-size:14px;color:#9ca3af;line-height:1.6;">
-        Your <strong style="color:#ffffff;">${productName}</strong> eSIM (order ${orderNumber}) is ready to install.
+        Your <strong style="color:#ffffff;">${escapeHtml(productName)}</strong> eSIM (order ${escapeHtml(orderNumber)}) is ready to install.
         Follow these steps to get connected:
       </p>
 
@@ -368,7 +369,7 @@ export async function sendInstallationReminder(
 
     const result = await sendEmail({
       to: email,
-      subject: `Install your eSIM - Order ${orderNumber}`,
+      subject: `Install your eSIM - Order ${escapeHtml(orderNumber)}`,
       html,
     });
 
@@ -389,7 +390,7 @@ export async function sendFeedbackRequest(
     const html = layout(`
       <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#ffffff;">How was your experience?</h1>
       <p style="margin:0 0 24px;font-size:14px;color:#9ca3af;line-height:1.6;">
-        You recently used <strong style="color:#ffffff;">${productName}</strong> (order ${orderNumber}).
+        You recently used <strong style="color:#ffffff;">${escapeHtml(productName)}</strong> (order ${escapeHtml(orderNumber)}).
         We'd love to hear how it went!
       </p>
 
@@ -426,7 +427,7 @@ export async function sendTravelAgainReminder(
     const html = layout(`
       <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#ffffff;">Traveling again?</h1>
       <p style="margin:0 0 24px;font-size:14px;color:#9ca3af;line-height:1.6;">
-        Last time you used MobiaL for your trip to <strong style="color:#ffffff;">${lastDestination}</strong>.
+        Last time you used MobiaL for your trip to <strong style="color:#ffffff;">${escapeHtml(lastDestination)}</strong>.
         Planning your next adventure? We have plans for 190+ countries.
       </p>
 

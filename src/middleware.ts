@@ -1,18 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = atob(payload);
-    return JSON.parse(decoded);
-  } catch {
-    return null;
-  }
-}
-
 function getTokenFromRequest(request: NextRequest): string | null {
   const authHeader = request.headers.get('authorization');
   if (authHeader?.startsWith('Bearer ')) {
@@ -68,6 +56,9 @@ export async function middleware(request: NextRequest) {
   const isProtectedPath = pathname.startsWith('/admin') ||
                           pathname.startsWith('/api/admin');
 
+  // UX-only redirect: if no token present, redirect to login.
+  // Actual authorization is enforced in route handlers via requireAdmin()
+  // which does full HMAC signature verification.
   if (isProtectedPath) {
     const rawToken = getTokenFromRequest(request);
 
@@ -75,25 +66,6 @@ export async function middleware(request: NextRequest) {
       const url = new URL('/login', request.url);
       url.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(url);
-    }
-
-    const payload = decodeJwtPayload(rawToken);
-
-    if (!payload) {
-      const url = new URL('/login', request.url);
-      url.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(url);
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-    if (typeof payload.exp === 'number' && payload.exp < now) {
-      const url = new URL('/login', request.url);
-      url.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(url);
-    }
-
-    if (payload.role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
