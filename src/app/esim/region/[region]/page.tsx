@@ -38,19 +38,23 @@ async function getRegionProducts(countryCodes: string[]) {
   try {
     // Fetch products for the first few countries in the region to get representative results
     const countriesToFetch = countryCodes.slice(0, 5)
-    const allProducts: any[] = []
 
-    for (const country of countriesToFetch) {
-      const res = await fetch(
-        `${baseUrl}/api/products?country=${country}&limit=5&sortBy=price_asc`,
-        { next: { revalidate: 3600 } }
+    const responses = await Promise.all(
+      countriesToFetch.map((country) =>
+        fetch(
+          `${baseUrl}/api/products?country=${country}&limit=5&sortBy=price_asc`,
+          { next: { revalidate: 3600 } }
+        ).then(async (res) => {
+          if (res.ok) {
+            const data = await res.json()
+            return (data?.data?.products || []) as any[]
+          }
+          return [] as any[]
+        }).catch(() => [] as any[])
       )
-      if (res.ok) {
-        const data = await res.json()
-        const products = data?.data?.products || []
-        allProducts.push(...products)
-      }
-    }
+    )
+
+    const allProducts = responses.flat()
 
     // Deduplicate by product ID and sort by price
     const seen = new Set<string>()
