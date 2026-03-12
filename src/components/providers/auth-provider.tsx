@@ -10,6 +10,7 @@ interface User {
   name: string | null
   role: "ADMIN" | "CUSTOMER"
   avatar?: string | null
+  twoFactorEnabled?: boolean
 }
 
 interface AuthContextType {
