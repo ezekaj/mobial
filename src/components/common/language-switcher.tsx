@@ -19,7 +19,11 @@ const languages = [
   { code: "fr", label: "Fran\u00e7ais", flag: "\ud83c\uddeb\ud83c\uddf7" },
 ] as const
 
-export function LanguageSwitcher() {
+interface LanguageSwitcherProps {
+  triggerClassName?: string
+}
+
+export function LanguageSwitcher({ triggerClassName }: LanguageSwitcherProps = {}) {
   const locale = useLocale()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -48,7 +52,7 @@ export function LanguageSwitcher() {
         <Button
           variant="ghost"
           size="icon"
-          className="hidden sm:flex"
+          className={triggerClassName ?? "hidden sm:flex"}
           disabled={isPending}
         >
           <Globe className="h-5 w-5" />

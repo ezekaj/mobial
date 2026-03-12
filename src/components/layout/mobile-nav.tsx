@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { LanguageSwitcher } from "@/components/common/language-switcher"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -91,6 +92,12 @@ export function MobileNav({ onClose }: MobileNavProps) {
             </>
           )}
         </Button>
+      </div>
+
+      {/* Language Switcher */}
+      <div className="flex items-center justify-between px-3 py-2">
+        <span className="text-sm font-medium text-muted-foreground">Language</span>
+        <LanguageSwitcher triggerClassName="flex" />
       </div>
 
       <Separator className="my-4" />
