@@ -1,6 +1,7 @@
 import { MetadataRoute } from "next"
 import { getAllCountrySlugs } from "@/lib/countries"
 import { getAllRegionSlugs } from "@/lib/regions"
+import { blogPosts } from "@/lib/blog"
 import { db } from "@/lib/db"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -79,5 +80,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  return [...staticEntries, ...countryEntries, ...regionEntries, ...productEntries, ...guideEntries]
+  // Blog posts
+  const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+    url: `${baseUrl}/blog/${post.slug}`,
+    lastModified: new Date(post.publishedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }))
+
+  return [...staticEntries, ...countryEntries, ...regionEntries, ...productEntries, ...guideEntries, ...blogEntries]
 }
