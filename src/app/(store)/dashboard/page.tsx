@@ -1,8 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import { useQuery } from "@tanstack/react-query"
 import {
   Wifi,
   Package,
@@ -17,7 +16,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/components/providers/auth-provider"
 import Link from "next/link"
@@ -42,6 +41,25 @@ interface Order {
   items: OrderItem[]
 }
 
+interface OrdersResponse {
+  success: boolean
+  data: {
+    orders: Order[]
+    total: number
+  }
+}
+
+async function fetchOrders(): Promise<OrdersResponse> {
+  const token = localStorage.getItem("token")
+  if (!token) throw new Error("No auth token")
+
+  const res = await fetch("/api/orders", {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error("Failed to fetch orders")
+  return res.json()
+}
+
 const statusColors: Record<string, string> = {
   PENDING: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
   PROCESSING: "bg-blue-500/10 text-blue-500 border-blue-500/20",
@@ -52,43 +70,16 @@ const statusColors: Record<string, string> = {
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading, openAuthModal } = useAuth()
-  const router = useRouter()
-  const [orders, setOrders] = useState<Order[]>([])
-  const [totalOrders, setTotalOrders] = useState(0)
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      setLoading(false)
-      return
-    }
-    if (!authLoading && user) {
-      fetchOrders()
-    }
-  }, [user, authLoading])
+  const { data: ordersData, isLoading: ordersLoading } = useQuery({
+    queryKey: ["dashboard-orders"],
+    queryFn: fetchOrders,
+    enabled: !authLoading && !!user,
+  })
 
-  const fetchOrders = async () => {
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) return
-
-      const res = await fetch("/api/orders", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.success) {
-          setOrders(data.data.orders || [])
-          setTotalOrders(data.data.total || data.data.orders?.length || 0)
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch orders:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  const orders = ordersData?.data?.orders || []
+  const totalOrders = ordersData?.data?.total || orders.length
+  const loading = authLoading || (!!user && ordersLoading)
   const activeEsims = orders.filter((o) => o.status === "COMPLETED").length
 
   if (authLoading) {
