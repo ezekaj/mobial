@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import posthog from "posthog-js"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -96,8 +97,13 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (items.length === 0) {
       router.push("/products")
+    } else {
+      posthog.capture("checkout_started", {
+        item_count: items.length,
+        total,
+      })
     }
-  }, [items.length, router])
+  }, [items.length, router, total])
 
   // Save abandoned cart when email is provided
   useEffect(() => {

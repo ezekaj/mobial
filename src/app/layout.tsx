@@ -16,6 +16,7 @@ import { ChatWidget } from "@/components/common/chat-widget"
 import { NotificationPrompt } from "@/components/common/notification-prompt"
 import { InstallPrompt } from "@/components/common/install-prompt"
 import { MonitoringProvider } from "@/components/providers/monitoring-provider"
+import { PostHogProvider } from "@/components/providers/posthog-provider"
 import { CookieConsent } from "@/components/gdpr/cookie-consent"
 import Script from "next/script"
 
@@ -103,6 +104,7 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ReactQueryProvider>
             <AuthProvider>
+              <PostHogProvider>
               <ThemeProvider
                 attribute="class"
                 defaultTheme="dark"
@@ -127,6 +129,7 @@ export default async function RootLayout({
                   </CartProvider>
                 </CurrencyProvider>
               </ThemeProvider>
+            </PostHogProvider>
             </AuthProvider>
           </ReactQueryProvider>
         </NextIntlClientProvider>

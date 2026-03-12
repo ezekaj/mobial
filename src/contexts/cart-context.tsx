@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useReducer, useEffect, ReactNode } from "react"
+import posthog from "posthog-js"
 
 // Types
 export interface CartItem {
@@ -145,10 +146,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = (item: Omit<CartItem, "quantity">) => {
     dispatch({ type: "ADD_ITEM", payload: { ...item, quantity: 1 } })
+    posthog.capture("add_to_cart", {
+      product_id: item.productId,
+      product_name: item.name,
+      price: item.price,
+      provider: item.provider,
+    })
   }
 
   const removeItem = (productId: string) => {
     dispatch({ type: "REMOVE_ITEM", payload: productId })
+    posthog.capture("remove_from_cart", { product_id: productId })
   }
 
   const updateQuantity = (productId: string, quantity: number) => {
