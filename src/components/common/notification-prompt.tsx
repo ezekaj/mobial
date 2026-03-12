@@ -73,6 +73,7 @@ export function NotificationPrompt() {
                   <button
                     onClick={handleDismiss}
                     className="text-muted-foreground hover:text-foreground transition-colors p-1 -mt-1 -mr-1"
+                    aria-label="Dismiss notification prompt"
                   >
                     <X className="h-4 w-4" />
                   </button>

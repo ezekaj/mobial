@@ -200,6 +200,11 @@ export function DestinationSearch() {
                 if (e.key === "Enter") handleSearchSubmit()
                 if (e.key === "Escape") setOpen(false)
               }}
+              role="combobox"
+              aria-expanded={open}
+              aria-haspopup="listbox"
+              aria-controls="destination-listbox"
+              aria-autocomplete="list"
             />
           </div>
           {isSearching && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-3" />}
@@ -213,7 +218,7 @@ export function DestinationSearch() {
 
         {open && (
           <div className="absolute top-full left-0 right-0 mt-4 overflow-hidden rounded-[2rem] border border-white/10 bg-black/80 backdrop-blur-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 z-50">
-            <div className="p-4 max-h-[480px] overflow-y-auto custom-scrollbar">
+            <div id="destination-listbox" role="listbox" className="p-4 max-h-[480px] overflow-y-auto custom-scrollbar">
               {/* Default view: Recent + Top Destinations */}
               {showDefault && (
                 <>
@@ -254,6 +259,8 @@ export function DestinationSearch() {
                       {topDestinations.map((dest) => (
                         <button
                           key={dest.slug}
+                          role="option"
+                          aria-selected={false}
                           className="flex items-center justify-between px-4 py-3 rounded-2xl hover:bg-white/5 transition-colors text-left group/item"
                           onClick={() => handleCountrySelect(dest.slug)}
                         >
@@ -282,6 +289,8 @@ export function DestinationSearch() {
                         {countryMatches.map((c) => (
                           <button
                             key={c.slug}
+                            role="option"
+                            aria-selected={false}
                             className="flex items-center justify-between px-4 py-3 rounded-2xl hover:bg-white/5 transition-colors text-left group/item"
                             onClick={() => handleCountrySelect(c.slug)}
                           >
@@ -309,6 +318,8 @@ export function DestinationSearch() {
                         {regionMatches.map((r) => (
                           <button
                             key={r.slug}
+                            role="option"
+                            aria-selected={false}
                             className="flex items-center justify-between px-4 py-3 rounded-2xl hover:bg-white/5 transition-colors text-left group/item"
                             onClick={() => handleRegionSelect(r.slug)}
                           >
@@ -336,6 +347,8 @@ export function DestinationSearch() {
                         {results.map((product) => (
                           <button
                             key={product.id}
+                            role="option"
+                            aria-selected={false}
                             className="flex items-center justify-between px-4 py-3 rounded-2xl hover:bg-white/5 transition-colors text-left group/item"
                             onClick={() => handleProductSelect(product)}
                           >
