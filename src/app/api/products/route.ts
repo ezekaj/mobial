@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       where.countries = { contains: country };
     }
     if (region) {
-      where.regions = { contains: region };
+      where.regions = { contains: region, mode: 'insensitive' };
     }
     if (provider) {
       where.provider = provider;

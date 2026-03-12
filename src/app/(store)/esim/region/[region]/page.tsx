@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { getRegionBySlug, regions } from "@/lib/regions"
+import { db } from "@/lib/db"
 
 interface PageProps {
   params: Promise<{ region: string }>
@@ -40,39 +41,52 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export const revalidate = 3600
 
 async function getRegionProducts(countryCodes: string[]) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
   try {
-    // Fetch products for the first few countries in the region to get representative results
     const countriesToFetch = countryCodes.slice(0, 5)
 
-    const responses = await Promise.all(
-      countriesToFetch.map((country) =>
-        fetch(
-          `${baseUrl}/api/products?country=${country}&limit=5&sortBy=price_asc`,
-          { next: { revalidate: 3600 } }
-        ).then(async (res) => {
-          if (res.ok) {
-            const data = await res.json()
-            return (data?.data?.products || []) as any[]
-          }
-          return [] as any[]
-        }).catch(() => [] as any[])
-      )
-    )
+    const products = await db.product.findMany({
+      where: {
+        isActive: true,
+        externallyShown: true,
+        category: 'esim_realtime',
+        OR: countriesToFetch.map(code => ({
+          countries: { contains: code },
+        })),
+      },
+      orderBy: { price: 'asc' },
+      take: 20,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        provider: true,
+        price: true,
+        originalPrice: true,
+        dataAmount: true,
+        dataUnit: true,
+        isUnlimited: true,
+        validityDays: true,
+        countries: true,
+        regions: true,
+        networks: true,
+        providerLogo: true,
+        speedInfo: true,
+        networkType: true,
+        activationPolicy: true,
+        isActive: true,
+        topUpAvailable: true,
+        penalizedRank: true,
+        category: true,
+      },
+    })
 
-    const allProducts = responses.flat()
-
-    // Deduplicate by product ID and sort by price
-    const seen = new Set<string>()
-    return allProducts
-      .filter((p) => {
-        if (seen.has(p.id)) return false
-        seen.add(p.id)
-        return true
-      })
-      .sort((a, b) => a.price - b.price)
-      .slice(0, 20)
-  } catch {
+    return products.map(p => ({
+      ...p,
+      countries: p.countries ? JSON.parse(p.countries) : [],
+      regions: p.regions ? JSON.parse(p.regions) : [],
+    }))
+  } catch (error) {
+    console.error('[getRegionProducts] DB query failed:', error)
     return []
   }
 }
