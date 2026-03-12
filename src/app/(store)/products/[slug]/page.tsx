@@ -57,23 +57,28 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     notFound()
   }
 
-  // Get related products: same provider + same country for broader recommendations
-  const [providerResults, countryResults] = await Promise.all([
-    getProducts({ provider: product.provider, limit: 4 }),
-    product.countries[0]
-      ? getProducts({ country: product.countries[0], limit: 6 })
-      : Promise.resolve({ products: [] } as { products: ProductWithDetails[] }),
-  ])
+  // Get related products with graceful degradation — page renders even if these fail
+  let filteredRelated: ProductWithDetails[] = []
+  let countryRelated: ProductWithDetails[] = []
 
-  // Same provider, different plans
-  const filteredRelated = providerResults.products
-    .filter(p => p.id !== product.id)
-    .slice(0, 3)
+  try {
+    const [providerResults, countryResults] = await Promise.all([
+      getProducts({ provider: product.provider, limit: 4 }),
+      product.countries[0]
+        ? getProducts({ country: product.countries[0], limit: 6 })
+        : Promise.resolve({ products: [] } as { products: ProductWithDetails[] }),
+    ])
 
-  // Same country, different providers (for "Other plans for this destination")
-  const countryRelated = countryResults.products
-    .filter(p => p.id !== product.id && p.provider !== product.provider)
-    .slice(0, 3)
+    filteredRelated = providerResults.products
+      .filter(p => p.id !== product.id)
+      .slice(0, 3)
+
+    countryRelated = countryResults.products
+      .filter(p => p.id !== product.id && p.provider !== product.provider)
+      .slice(0, 3)
+  } catch (error) {
+    console.error('[ProductPage] Failed to fetch related products:', error)
+  }
 
   return (
     <>
