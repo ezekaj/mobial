@@ -201,6 +201,98 @@ const DEFAULT_INFO = {
     "We recommend 1-2GB per week for casual use (maps, messaging, social media). Get more if you plan to video call or stream.",
 }
 
+// Country-specific extra FAQ questions
+const COUNTRY_FAQ: Record<string, { q: string; a: string }[]> = {
+  JP: [
+    { q: "Does eSIM work on the Tokyo subway?", a: "Yes, most Tokyo Metro and JR lines have cellular coverage. However, some deep underground sections may have brief signal drops. Download offline maps as a backup." },
+    { q: "Should I get a pocket WiFi or eSIM for Japan?", a: "eSIM is more convenient and affordable. Pocket WiFi requires pickup/return and charges daily. With an eSIM, you're connected the moment you land — no extra device needed." },
+    { q: "Can I use Google Maps in Japan with an eSIM?", a: "Absolutely. Google Maps works well in Japan for navigation and transit directions. Download the offline map of your region before departure for extra reliability." },
+    { q: "Is 5G available in Japan for eSIM users?", a: "Yes, 5G is expanding rapidly in Tokyo, Osaka, and other major cities through NTT Docomo and KDDI networks. Your eSIM will connect to the fastest available network." },
+  ],
+  US: [
+    { q: "Will my eSIM work in US national parks?", a: "Coverage varies significantly. Most parks have limited or no signal. Download offline maps for parks like Yellowstone, Grand Canyon, and Yosemite before you go." },
+    { q: "Can I use my eSIM for Uber and Lyft in the US?", a: "Yes, eSIM data works perfectly with ride-hailing apps. Make sure you have at least 3G/4G signal in your area for real-time GPS tracking." },
+    { q: "Which US cities have the best 5G coverage?", a: "New York, Los Angeles, Chicago, Dallas, and Houston have the widest 5G coverage through T-Mobile and AT&T networks." },
+    { q: "Do I need a separate plan for Hawaii?", a: "No, Hawaii is part of the US and covered by the same eSIM plan. Coverage is excellent on major islands (Oahu, Maui, Big Island)." },
+  ],
+  TR: [
+    { q: "Does eSIM work in Cappadocia and rural Turkey?", a: "Coverage in Cappadocia is generally good in towns like Goreme and Urgup. Remote hiking areas may have limited signal. Download offline maps for hot air balloon regions." },
+    { q: "Can I use WhatsApp with a Turkey eSIM?", a: "Yes, WhatsApp, Telegram, and other messaging apps work normally with your eSIM data connection in Turkey." },
+    { q: "Is Turkey eSIM affordable compared to local SIM cards?", a: "Turkey eSIMs are very competitively priced. Plus, you avoid the hassle of finding a shop, passport registration, and language barriers when buying a local SIM." },
+    { q: "Will my eSIM work on the Istanbul ferry?", a: "Yes, cellular coverage extends across the Bosphorus ferries and most of Istanbul's waterways." },
+  ],
+  TH: [
+    { q: "Does eSIM work on Thai islands like Koh Phi Phi?", a: "Major islands like Phuket, Koh Samui, and Koh Phangan have good coverage. Smaller islands (Koh Lipe, Koh Tao) may have weaker signal in remote areas." },
+    { q: "Can I use Grab (ride-hailing) with my eSIM?", a: "Yes, Grab works perfectly with eSIM data. It's the most popular ride-hailing app in Thailand and also offers food delivery." },
+    { q: "Is 5G available in Thailand?", a: "5G is available in Bangkok and expanding to other major cities like Chiang Mai and Pattaya through AIS and TrueMove H networks." },
+    { q: "Do I need an eSIM for a short layover in Bangkok?", a: "For layovers under 6 hours, Suvarnabhumi Airport's free WiFi is usually sufficient. For longer stays or if you're leaving the airport, an eSIM is recommended." },
+  ],
+  ES: [
+    { q: "Does eSIM coverage extend to the Canary Islands?", a: "Yes, the Canary Islands (Tenerife, Gran Canaria, etc.) are part of Spain and covered by the same eSIM plan with excellent coverage." },
+    { q: "Can I use my eSIM on the Madrid Metro?", a: "Coverage on the Madrid Metro is generally good, with most stations having 4G signal. Barcelona Metro also has good coverage throughout." },
+    { q: "Will my eSIM work for the Camino de Santiago?", a: "Coverage along popular Camino routes is decent but can be spotty in very rural mountainous sections. Download offline maps before starting your walk." },
+    { q: "Is my Spain eSIM valid in Andorra?", a: "Andorra is not part of Spain or the EU, so your Spain eSIM may not cover it. Check your plan details or consider a separate plan for Andorra." },
+  ],
+  IT: [
+    { q: "Does eSIM work in the Italian countryside (Tuscany)?", a: "Coverage in popular Tuscan towns (Florence, Siena, San Gimignano) is good. Remote hilltop villages may have weaker signal. Download offline maps for road trips." },
+    { q: "Can I use my eSIM on Italian trains (Trenitalia)?", a: "Coverage on high-speed trains (Frecciarossa) varies — signal can drop in tunnels through the Apennines. Many trains offer onboard WiFi as backup." },
+    { q: "Will my eSIM work in Vatican City?", a: "Yes, Vatican City has the same cellular coverage as Rome. Your Italy eSIM will work seamlessly there." },
+    { q: "Is eSIM better than buying a TIM tourist SIM in Italy?", a: "eSIM is more convenient — no store visit needed, instant activation, and you keep your main number active. Tourist SIMs require passport and store purchase." },
+  ],
+  GB: [
+    { q: "Does my UK eSIM work on the London Underground?", a: "The Tube now has 4G/5G coverage on most of the Elizabeth line and parts of the Central, Northern, and Jubilee lines. Coverage is expanding rapidly." },
+    { q: "Will my eSIM work in Scotland's Highlands?", a: "Coverage in the Scottish Highlands can be very limited, especially in remote areas. Download offline maps and plan for periods without signal." },
+    { q: "Can I use contactless payments with my eSIM phone?", a: "Yes, but contactless payments use NFC (Apple Pay/Google Pay), not your eSIM data. However, you need data for some payment verifications." },
+    { q: "Does the UK eSIM cover Northern Ireland?", a: "Yes, Northern Ireland is part of the UK and covered by the same eSIM plan. Coverage is good in Belfast and major towns." },
+  ],
+  DE: [
+    { q: "Is German mobile coverage really as bad as people say?", a: "German urban coverage is good, but rural areas and train routes do have more gaps than other Western European countries. It's improving but download offline maps for rural journeys." },
+    { q: "Will my eSIM work on Deutsche Bahn trains?", a: "Coverage on DB trains varies — ICE trains have onboard WiFi but cellular signal can drop in rural stretches and tunnels. The DB Navigator app works offline for schedules." },
+    { q: "Does my Germany eSIM cover Oktoberfest grounds?", a: "Yes, Munich has excellent coverage including the Theresienwiese festival grounds. Network congestion during peak hours is possible but manageable." },
+    { q: "Can I use my eSIM in the Black Forest?", a: "Coverage in Black Forest towns is good, but remote hiking trails may have limited signal. Download offline hiking maps before heading into the forest." },
+  ],
+  FR: [
+    { q: "Does my eSIM work in the Paris Metro?", a: "Most Paris Metro stations now have 4G coverage, but signal drops in tunnels between stations. Free WiFi is available in some stations." },
+    { q: "Will my France eSIM work in Monaco?", a: "Monaco is a separate country, so your France eSIM may not cover it. Check your plan details — some plans include Monaco as it's surrounded by France." },
+    { q: "Can I use my eSIM in French ski resorts?", a: "Major ski resorts like Chamonix, Val d'Isere, and Courchevel have good coverage in resort villages. Higher altitude slopes may have limited signal." },
+    { q: "Is eSIM good enough for a road trip through Provence?", a: "Yes, Provence has good 4G coverage in towns and along major roads. Some very rural lavender fields and gorges may have brief signal gaps." },
+  ],
+  AU: [
+    { q: "Does eSIM work in the Australian Outback?", a: "No — the Outback has essentially no cellular coverage. If driving through remote areas, consider a satellite communicator. eSIM works perfectly in all cities and towns along the coast." },
+    { q: "Will my eSIM work on the Great Barrier Reef?", a: "Coverage on the mainland coast (Cairns, Airlie Beach) is good. On reef boats and islands, coverage depends on distance from shore — most popular tourist islands have basic coverage." },
+    { q: "Can I use my eSIM for road trips along the Great Ocean Road?", a: "Coverage along the Great Ocean Road is generally good but can drop in sections between towns. Download offline maps for the drive." },
+    { q: "Is eSIM better than buying a Telstra SIM at the airport?", a: "eSIM is faster — activated before you land vs. waiting in an airport queue. Both use the same networks. eSIM also lets you keep your home number active." },
+  ],
+  KR: [
+    { q: "Is South Korea's internet really that fast?", a: "Yes, South Korea consistently ranks among the world's fastest for mobile internet. Expect 80-150 Mbps on 4G and even faster on 5G in Seoul." },
+    { q: "Should I use Naver Map or Google Maps in Korea?", a: "Use Naver Map — Google Maps has limited functionality in South Korea due to government mapping restrictions. Naver Map has better transit, walking, and restaurant info." },
+    { q: "Does eSIM work in the Seoul subway?", a: "Yes, Seoul's subway has excellent 4G/5G coverage throughout, including between stations. You can stream video without interruption." },
+    { q: "Can I use KakaoTalk with my eSIM?", a: "Absolutely. KakaoTalk is Korea's dominant messaging app and works perfectly with eSIM data. It's recommended for communicating with locals and businesses." },
+  ],
+  SG: [
+    { q: "Is WiFi so common in Singapore that I don't need an eSIM?", a: "Singapore has abundant WiFi, but an eSIM is still valuable for seamless navigation between locations, Grab rides, and avoiding the hassle of connecting to different networks." },
+    { q: "Does my Singapore eSIM work on Sentosa Island?", a: "Yes, Sentosa has the same excellent coverage as the rest of Singapore. All attractions, beaches, and resorts have strong signal." },
+    { q: "Can I use my eSIM at Changi Airport?", a: "Yes, though Changi also has excellent free WiFi. Your eSIM will activate as soon as your plane lands and you turn off airplane mode." },
+    { q: "Is a Singapore eSIM useful for a layover?", a: "For short layovers (under 6 hours), Changi's free WiFi is excellent. For longer layovers where you explore the city, an eSIM makes navigation and Grab rides seamless." },
+  ],
+}
+
+// Get related country guides (same region or popular pairings)
+const RELATED_GUIDES: Record<string, string[]> = {
+  JP: ["KR", "SG", "TH"],
+  US: ["GB", "AU", "DE"],
+  TR: ["ES", "IT", "FR"],
+  TH: ["SG", "JP", "KR"],
+  ES: ["IT", "FR", "TR"],
+  IT: ["ES", "FR", "DE"],
+  GB: ["DE", "FR", "US"],
+  DE: ["FR", "IT", "GB"],
+  FR: ["ES", "IT", "DE"],
+  AU: ["SG", "JP", "TH"],
+  KR: ["JP", "SG", "TH"],
+  SG: ["TH", "JP", "KR"],
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { country: slug } = await params
   const country = getCountryBySlug(slug)
@@ -212,9 +304,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `eSIM Guide for ${country.name} - Setup, Carriers & Travel Tips`,
     description: `Complete eSIM guide for ${country.name}. Local carriers, network speeds, coverage info, emergency numbers, and travel tips. Get the best eSIM plan for ${country.name}.`,
+    alternates: {
+      canonical: `${BASE_URL}/guides/${slug}`,
+    },
     openGraph: {
       title: `Best eSIM for ${country.name} | MobiaL Guide`,
       description: `Everything you need to know about using an eSIM in ${country.name}. Local carriers, speeds, and practical travel tips.`,
+      url: `${BASE_URL}/guides/${slug}`,
     },
   }
 }
@@ -236,7 +332,7 @@ export default async function CountryGuidePage({ params }: PageProps) {
     limit: 3,
   })
 
-  const faqQuestions = [
+  const baseFaq = [
     {
       q: `How do I install an eSIM for ${country.name}?`,
       a: `Go to Settings > Cellular/Mobile > Add eSIM on your device. Scan the QR code we send to your email, or enter the activation details manually. The eSIM activates instantly.`,
@@ -253,7 +349,25 @@ export default async function CountryGuidePage({ params }: PageProps) {
       q: `Can I keep my regular phone number while using an eSIM in ${country.name}?`,
       a: `Yes! eSIM works alongside your physical SIM. Keep your regular number for calls/texts and use the eSIM for data while abroad.`,
     },
+    {
+      q: `How long does it take to receive my ${country.name} eSIM?`,
+      a: `Your eSIM QR code is delivered to your email within 2 minutes of purchase. You can install it immediately or save it for when you arrive.`,
+    },
+    {
+      q: `What happens when my ${country.name} eSIM data runs out?`,
+      a: `You can top up your eSIM directly from our website or purchase a new plan. Your eSIM profile stays on your device — you just need to add more data.`,
+    },
+    {
+      q: `Can I share my ${country.name} eSIM data as a hotspot?`,
+      a: `Most of our eSIM plans support hotspot/tethering, so you can share your data with other devices. Check the specific plan details for confirmation.`,
+    },
+    {
+      q: `Is it cheaper to buy an eSIM or use roaming in ${country.name}?`,
+      a: `An eSIM is almost always cheaper. International roaming from your home carrier can cost $5-15/MB, while our eSIM plans offer gigabytes of data for a fraction of that price.`,
+    },
   ]
+  const countrySpecificFaq = COUNTRY_FAQ[country.code] || []
+  const faqQuestions = [...baseFaq, ...countrySpecificFaq]
 
   return (
     <>
@@ -514,6 +628,54 @@ export default async function CountryGuidePage({ params }: PageProps) {
             </div>
           </div>
         </section>
+
+        {/* Related Guides */}
+        {(() => {
+          const relatedCodes = RELATED_GUIDES[country.code] || []
+          const relatedCountries = relatedCodes
+            .map((code) => {
+              const entry = Object.entries(countries).find(
+                ([, c]) => c.code === code
+              )
+              return entry ? { slug: entry[0], ...entry[1] } : null
+            })
+            .filter(Boolean) as { slug: string; name: string; code: string; flag: string }[]
+
+          if (relatedCountries.length === 0) return null
+
+          return (
+            <section className="py-12 bg-muted/30">
+              <div className="container mx-auto px-4 max-w-4xl">
+                <h2 className="text-2xl font-black tracking-tight mb-6">
+                  More Travel Guides
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {relatedCountries.map((rc) => (
+                    <Link key={rc.code} href={`/guides/${rc.slug}`}>
+                      <Card className="h-full hover:border-primary/30 transition-colors border-border/50">
+                        <CardContent className="p-5 text-center space-y-2">
+                          <div className="text-4xl">{rc.flag}</div>
+                          <p className="font-bold">{rc.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            eSIM Guide
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+                <div className="text-center mt-6">
+                  <Link href="/guides">
+                    <Button variant="outline" className="font-bold">
+                      View All Guides
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </section>
+          )
+        })()}
     </>
   )
 }
