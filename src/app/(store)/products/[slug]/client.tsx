@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
@@ -51,6 +51,20 @@ export function ProductDetailClient({ product, relatedProducts, countryRelatedPr
     : 0
 
   const inCart = isInCart(product.id)
+  const ctaRef = useRef<HTMLButtonElement>(null)
+  const [showStickyBar, setShowStickyBar] = useState(false)
+
+  useEffect(() => {
+    const el = ctaRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyBar(!entry.isIntersecting),
+      { threshold: 0 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const handleAddToCart = async () => {
     if (inCart) {
@@ -368,6 +382,7 @@ export function ProductDetailClient({ product, relatedProducts, countryRelatedPr
 
                   {/* Add to Cart */}
                   <Button
+                    ref={ctaRef}
                     size="lg"
                     className="w-full gradient-accent text-accent-foreground"
                     onClick={handleAddToCart}
@@ -655,6 +670,44 @@ export function ProductDetailClient({ product, relatedProducts, countryRelatedPr
               </div>
             </div>
           )}
+        </div>
+
+        {/* Sticky Add to Cart — mobile only, appears when main CTA scrolls out */}
+        <div
+          className={`fixed bottom-16 left-0 right-0 z-40 md:hidden transition-all duration-300 pb-[env(safe-area-inset-bottom)] ${
+            showStickyBar
+              ? "translate-y-0 opacity-100"
+              : "translate-y-full opacity-0 pointer-events-none"
+          }`}
+        >
+          <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold truncate">{product.name}</p>
+                <p className="text-lg font-black text-primary" suppressHydrationWarning>{formatPrice(product.price)}</p>
+              </div>
+              <Button
+                size="lg"
+                className="gradient-accent text-accent-foreground shrink-0 h-12 px-6"
+                onClick={handleAddToCart}
+                disabled={addingToCart}
+              >
+                {addingToCart ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : inCart ? (
+                  <>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Checkout
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Add to Cart
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
     </>
   )

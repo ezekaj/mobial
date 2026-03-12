@@ -133,9 +133,9 @@ function ProductGrid({
   }
 
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible sm:snap-none sm:pb-0">
       {products.slice(0, 8).map((product) => (
-        <Link key={product.id} href={`/products/${product.slug || product.id}`}>
+        <Link key={product.id} href={`/products/${product.slug || product.id}`} className="min-w-[260px] snap-start shrink-0 sm:shrink sm:min-w-0">
           <Card className="group hover:shadow-xl transition-all border-border/50 h-full">
             <CardContent className="p-5 space-y-4">
               <div className="flex items-center justify-between">

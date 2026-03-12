@@ -102,3 +102,12 @@
 .search-rail {
   @apply sticky top-4 z-40 rounded-[28px] border border-white/12 bg-black/40 backdrop-blur-3xl ring-1 ring-inset ring-white/5 shadow-2xl;
 }
+
+/* Hide scrollbar for horizontal scroll areas */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

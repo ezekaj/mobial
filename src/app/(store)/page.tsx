@@ -249,12 +249,12 @@ export default async function HomePage() {
                 {t('browseByRegion')}
               </h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-5xl mx-auto">
+            <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide md:grid md:grid-cols-3 lg:grid-cols-6 md:overflow-visible md:snap-none md:pb-0 max-w-5xl mx-auto">
               {regions.map((region) => (
                 <Link
                   key={region.slug}
                   href={`/esim/region/${region.slug}`}
-                  className="p-6 rounded-2xl bg-card border border-border/50 hover:shadow-xl hover:border-primary/20 transition-all group text-center"
+                  className="min-w-[140px] snap-start p-6 rounded-2xl bg-card border border-border/50 hover:shadow-xl hover:border-primary/20 transition-all group text-center shrink-0 md:shrink md:min-w-0"
                 >
                   <Globe className="h-8 w-8 text-primary mx-auto mb-3 group-hover:scale-110 transition-transform" />
                   <h3 className="font-bold text-sm group-hover:text-primary transition-colors">
