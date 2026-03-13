@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -67,6 +68,7 @@ const statusColors: Record<string, string> = {
 }
 
 function UsageIndicator({ orderId }: { orderId: string }) {
+  const t = useTranslations("orders")
   const [usage, setUsage] = useState<UsageData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -96,7 +98,7 @@ function UsageIndicator({ orderId }: { orderId: string }) {
   return (
     <div className="space-y-2 mt-4 pt-4 border-t border-border/50">
       <div className="flex justify-between text-xs font-bold">
-        <span className="text-muted-foreground uppercase tracking-wider">Data Remaining</span>
+        <span className="text-muted-foreground uppercase tracking-wider">{t("dataRemaining")}</span>
         <span className="text-primary">{dataRemaining} GB left</span>
       </div>
       <Progress value={100 - percentUsed} className="h-2 bg-muted" />
@@ -108,12 +110,13 @@ function UsageIndicator({ orderId }: { orderId: string }) {
 }
 
 function OrderDetails({ order }: { order: Order }) {
+  const t = useTranslations("orders")
   const [copied, setCopied] = useState<string | null>(null)
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text)
     setCopied(key)
-    toast.success("Copied to clipboard")
+    toast.success(t("copiedToClipboard"))
     setTimeout(() => setCopied(null), 2000)
   }
 
@@ -131,15 +134,15 @@ function OrderDetails({ order }: { order: Order }) {
                   className="w-40 h-40"
                 />
               </div>
-              <p className="text-sm font-bold text-center">Scan to Install eSIM</p>
+              <p className="text-sm font-bold text-center">{t("scanToInstall")}</p>
               <p className="text-xs text-muted-foreground text-center mt-2 max-w-[200px]">
-                Open your device settings and scan this code to activate your plan.
+                {t("scanDesc")}
               </p>
             </>
           ) : (
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-2" />
-              <p className="text-sm font-medium">Provisioning your eSIM...</p>
+              <p className="text-sm font-medium">{t("provisioning")}</p>
             </div>
           )}
         </div>
@@ -148,14 +151,14 @@ function OrderDetails({ order }: { order: Order }) {
         <div className="space-y-4">
           <h4 className="font-black text-lg flex items-center gap-2">
             <Info className="h-5 w-5 text-primary" />
-            Manual Installation
+            {t("manualInstallation")}
           </h4>
           
           <div className="space-y-3">
             <div className="p-4 rounded-2xl bg-card border border-border/50 space-y-1">
-              <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">SM-DP+ Address</p>
+              <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">{t("smdpAddress")}</p>
               <div className="flex items-center justify-between gap-2">
-                <code className="text-sm font-mono truncate">{order.esimSmdpAddress || 'Pending...'}</code>
+                <code className="text-sm font-mono truncate">{order.esimSmdpAddress || t("pending")}</code>
                 <Button 
                   size="icon" 
                   variant="ghost" 
@@ -168,9 +171,9 @@ function OrderDetails({ order }: { order: Order }) {
             </div>
 
             <div className="p-4 rounded-2xl bg-card border border-border/50 space-y-1">
-              <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">Activation Code</p>
+              <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">{t("activationCode")}</p>
               <div className="flex items-center justify-between gap-2">
-                <code className="text-sm font-mono truncate">{order.esimActivationCode || 'Pending...'}</code>
+                <code className="text-sm font-mono truncate">{order.esimActivationCode || t("pending")}</code>
                 <Button 
                   size="icon" 
                   variant="ghost" 
@@ -185,7 +188,7 @@ function OrderDetails({ order }: { order: Order }) {
 
           <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20">
             <p className="text-xs leading-relaxed">
-              <span className="font-bold text-primary">Need help?</span> Go to Settings {'>'} Cellular {'>'} Add eSIM and choose "Enter Details Manually" to use these codes.
+              <span className="font-bold text-primary">{t("needHelp")}</span> {t("manualHelp")}
             </p>
           </div>
         </div>
@@ -195,6 +198,7 @@ function OrderDetails({ order }: { order: Order }) {
 }
 
 function OrderCard({ order }: { order: Order }) {
+  const t = useTranslations("orders")
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
@@ -244,7 +248,7 @@ function OrderCard({ order }: { order: Order }) {
                   variant={isExpanded ? "secondary" : "default"}
                   className="rounded-full font-bold px-6 h-12"
                 >
-                  {isExpanded ? "Close Details" : "View eSIM Details"}
+                  {isExpanded ? t("closeDetails") : t("viewEsimDetails")}
                   <ChevronRight className={cn("ml-2 h-4 w-4 transition-transform", isExpanded && "rotate-90")} />
                 </Button>
               )}
@@ -274,13 +278,14 @@ function OrderCard({ order }: { order: Order }) {
 }
 
 function GuestOrderLookup() {
+  const t = useTranslations("orders")
   const [orderNumber, setOrderNumber] = useState("")
   const [searching, setSearching] = useState(false)
   const router = useRouter()
 
   const handleSearch = async () => {
     if (!orderNumber.trim()) {
-      toast.error("Please enter an order number")
+      toast.error(t("enterOrderNumberToast"))
       return
     }
     setSearching(true)
@@ -289,10 +294,10 @@ function GuestOrderLookup() {
       if (response.ok) {
         router.push(`/order/${orderNumber.trim()}`)
       } else {
-        toast.error("Order not found")
+        toast.error(t("orderNotFound"))
       }
     } catch {
-      toast.error("Search failed")
+      toast.error(t("searchFailed"))
     } finally {
       setSearching(false)
     }
@@ -304,9 +309,9 @@ function GuestOrderLookup() {
         <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
           <Search className="h-10 w-10 text-primary" />
         </div>
-        <CardTitle className="text-3xl font-black tracking-tight">Track Your eSIM</CardTitle>
+        <CardTitle className="text-3xl font-black tracking-tight">{t("trackYourEsim")}</CardTitle>
         <p className="text-muted-foreground font-medium mt-2">
-          Enter your order number from your confirmation email.
+          {t("trackDesc")}
         </p>
       </CardHeader>
       <CardContent className="p-10 pt-6 space-y-6">
@@ -319,7 +324,7 @@ function GuestOrderLookup() {
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
           <Button onClick={handleSearch} disabled={searching} className="rounded-2xl h-14 px-8 font-bold text-lg">
-            {searching ? <Loader2 className="h-6 w-6 animate-spin" /> : "Find Order"}
+            {searching ? <Loader2 className="h-6 w-6 animate-spin" /> : t("findOrder")}
           </Button>
         </div>
       </CardContent>
@@ -332,6 +337,7 @@ function cn(...classes: any[]) {
 }
 
 export default function OrdersPage() {
+  const t = useTranslations("orders")
   const { user, isLoading: authLoading, openAuthModal } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -371,9 +377,9 @@ export default function OrdersPage() {
       <div className="pb-20">
         <section className="pt-16 pb-12">
           <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">My Dashboard</h1>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">{t("myDashboard")}</h1>
             <p className="text-muted-foreground font-medium max-w-xl mx-auto">
-              Manage your eSIMs, track data usage, and view your complete purchase history.
+              {t("dashboardDesc")}
             </p>
           </div>
         </section>
@@ -387,9 +393,9 @@ export default function OrdersPage() {
             <div className="space-y-12">
               <GuestOrderLookup />
               <div className="text-center space-y-4">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Or sign in to your account</p>
+                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{t("orSignIn")}</p>
                 <Button variant="outline" size="lg" className="rounded-2xl px-12 h-14 font-black border-2" onClick={() => openAuthModal("login")}>
-                  Login to Access All Orders
+                  {t("loginToAccess")}
                 </Button>
               </div>
             </div>
@@ -399,11 +405,11 @@ export default function OrdersPage() {
                 <Package className="h-12 w-12 text-muted-foreground" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black">No active orders</h3>
-                <p className="text-muted-foreground">You haven't purchased any eSIMs yet.</p>
+                <h3 className="text-2xl font-black">{t("noActiveOrders")}</h3>
+                <p className="text-muted-foreground">{t("noActiveOrdersDesc")}</p>
               </div>
               <Button size="lg" className="rounded-2xl px-10 h-14 font-black" asChild>
-                <a href="/products">Shop eSIM Plans</a>
+                <a href="/products">{t("shopPlans")}</a>
               </Button>
             </div>
           ) : (
@@ -415,7 +421,7 @@ export default function OrdersPage() {
               {hasMore && (
                 <div className="flex justify-center pt-8">
                   <Button variant="ghost" className="font-black text-primary hover:bg-primary/5 rounded-2xl h-14 px-12" onClick={() => loadOrders(orders.length)} disabled={loading}>
-                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Load More Orders"}
+                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : t("loadMore")}
                   </Button>
                 </div>
               )}
