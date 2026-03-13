@@ -99,11 +99,11 @@ function UsageIndicator({ orderId }: { orderId: string }) {
     <div className="space-y-2 mt-4 pt-4 border-t border-border/50">
       <div className="flex justify-between text-xs font-bold">
         <span className="text-muted-foreground uppercase tracking-wider">{t("dataRemaining")}</span>
-        <span className="text-primary">{dataRemaining} GB left</span>
+        <span className="text-primary">{t("gbLeft", { amount: dataRemaining })}</span>
       </div>
       <Progress value={100 - percentUsed} className="h-2 bg-muted" />
       <p className="text-[10px] text-muted-foreground">
-        {usage.remainingDays != null ? `${usage.remainingDays} days of validity remaining` : 'Validity info unavailable'}
+        {usage.remainingDays != null ? t("daysRemaining", { days: usage.remainingDays }) : t("validityUnavailable")}
       </p>
     </div>
   )

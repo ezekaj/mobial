@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTranslations } from "next-intl"
 import { motion } from "framer-motion"
 import QRCode from "qrcode"
 import {
@@ -43,6 +44,7 @@ import Link from "next/link"
 type TwoFAStep = "idle" | "loading" | "qr" | "verifying" | "backup_codes"
 
 export default function SettingsPage() {
+  const t = useTranslations("settings")
   const { user, isLoading: authLoading, openAuthModal, refresh } = useAuth()
 
   // Profile editing
@@ -79,7 +81,7 @@ export default function SettingsPage() {
   // Profile save
   const handleSaveProfile = async () => {
     if (!editName.trim() || editName.trim().length < 2) {
-      toast.error("Name must be at least 2 characters")
+      toast.error(t("nameMinLength"))
       return
     }
 
@@ -95,15 +97,15 @@ export default function SettingsPage() {
       })
 
       if (res.ok) {
-        toast.success("Profile updated successfully")
+        toast.success(t("profileUpdated"))
         setEditingProfile(false)
         await refresh()
       } else {
         const data = await res.json().catch(() => null)
-        toast.error(data?.message || "Failed to update profile")
+        toast.error(data?.message || t("failedUpdateProfile"))
       }
     } catch {
-      toast.error("Something went wrong. Please try again.")
+      toast.error(t("somethingWentWrong"))
     } finally {
       setSavingProfile(false)
     }
@@ -114,17 +116,17 @@ export default function SettingsPage() {
     e.preventDefault()
 
     if (!newPassword || !confirmPassword || !currentPassword) {
-      toast.error("Please fill in all password fields")
+      toast.error(t("fillAllFields"))
       return
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error("New passwords do not match")
+      toast.error(t("passwordsNoMatch"))
       return
     }
 
     if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters")
+      toast.error(t("passwordMinLength"))
       return
     }
 
@@ -140,16 +142,16 @@ export default function SettingsPage() {
       })
 
       if (res.ok) {
-        toast.success("Password changed successfully")
+        toast.success(t("passwordChanged"))
         setCurrentPassword("")
         setNewPassword("")
         setConfirmPassword("")
       } else {
         const data = await res.json().catch(() => null)
-        toast.error(data?.message || "Failed to change password. Please try again.")
+        toast.error(data?.message || t("failedChangePassword"))
       }
     } catch {
-      toast.error("Something went wrong. Please try again later.")
+      toast.error(t("somethingWentWrongLater"))
     } finally {
       setChangingPassword(false)
     }
@@ -167,7 +169,7 @@ export default function SettingsPage() {
       const data = await res.json()
 
       if (!res.ok || !data.success) {
-        toast.error(data?.message || "Failed to start 2FA setup")
+        toast.error(data?.message || t("failedStart2FA"))
         setTwoFAStep("idle")
         return
       }
@@ -184,7 +186,7 @@ export default function SettingsPage() {
       setTwoFAQrDataUrl(qrDataUrl)
       setTwoFAStep("qr")
     } catch {
-      toast.error("Failed to start 2FA setup")
+      toast.error(t("failedStart2FA"))
       setTwoFAStep("idle")
     }
   }
@@ -192,7 +194,7 @@ export default function SettingsPage() {
   // 2FA: Step 2 — Verify TOTP code
   const handleVerify2FA = async () => {
     if (totpCode.length !== 6) {
-      toast.error("Please enter a 6-digit code")
+      toast.error(t("enter6Digit"))
       return
     }
 
@@ -210,17 +212,17 @@ export default function SettingsPage() {
       const data = await res.json()
 
       if (!res.ok || !data.success) {
-        toast.error(data?.message || "Invalid verification code")
+        toast.error(data?.message || t("invalidVerificationCode"))
         setTwoFAStep("qr")
         return
       }
 
       setBackupCodes(data.data.backupCodes)
       setTwoFAStep("backup_codes")
-      toast.success("Two-factor authentication enabled!")
+      toast.success(t("twoFAEnabledToast"))
       await refresh()
     } catch {
-      toast.error("Verification failed. Please try again.")
+      toast.error(t("verificationFailed"))
       setTwoFAStep("qr")
     }
   }
@@ -229,7 +231,7 @@ export default function SettingsPage() {
   const handleDisable2FA = async () => {
     setDisabling2FA(true)
     try {
-      const password = prompt("Enter your password to disable 2FA:")
+      const password = prompt(t("enterPasswordToDisable"))
       if (!password) {
         setDisabling2FA(false)
         return
@@ -247,13 +249,13 @@ export default function SettingsPage() {
       const data = await res.json()
 
       if (res.ok && data.success) {
-        toast.success("Two-factor authentication disabled")
+        toast.success(t("twoFADisabledToast"))
         await refresh()
       } else {
-        toast.error(data?.message || "Failed to disable 2FA")
+        toast.error(data?.message || t("failedDisable2FA"))
       }
     } catch {
-      toast.error("Something went wrong")
+      toast.error(t("somethingWentWrong"))
     } finally {
       setDisabling2FA(false)
     }
@@ -271,11 +273,11 @@ export default function SettingsPage() {
   // Copy backup codes to clipboard
   const handleCopyBackupCodes = () => {
     navigator.clipboard.writeText(backupCodes.join("\n"))
-    toast.success("Backup codes copied to clipboard")
+    toast.success(t("backupCodesCopied"))
   }
 
   const handleDeleteAccount = () => {
-    toast.info("Account deletion requested. Our team will review your request.")
+    toast.info(t("accountDeletionRequested"))
   }
 
   if (authLoading) {
@@ -297,16 +299,16 @@ export default function SettingsPage() {
           <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto">
             <UserIcon className="h-10 w-10 text-primary" />
           </div>
-          <h1 className="text-3xl font-black tracking-tight">Sign in to continue</h1>
+          <h1 className="text-3xl font-black tracking-tight">{t("signInToContinue")}</h1>
           <p className="text-muted-foreground font-medium">
-            Log in to access your account settings.
+            {t("signInDesc")}
           </p>
           <Button
             size="lg"
             className="rounded-2xl px-10 h-14 font-black"
             onClick={() => openAuthModal("login")}
           >
-            Sign In
+            {t("signIn")}
           </Button>
         </motion.div>
       </div>
@@ -326,12 +328,12 @@ export default function SettingsPage() {
             <Button variant="ghost" className="mb-6 rounded-xl font-bold -ml-2" asChild>
               <Link href="/dashboard">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Dashboard
+                {t("backToDashboard")}
               </Link>
             </Button>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight">Account Settings</h1>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight">{t("title")}</h1>
             <p className="text-muted-foreground font-medium mt-2">
-              Manage your profile, security, and account preferences.
+              {t("subtitle")}
             </p>
           </motion.section>
 
@@ -346,22 +348,22 @@ export default function SettingsPage() {
                 <CardHeader>
                   <CardTitle className="text-xl font-black flex items-center gap-2">
                     <UserIcon className="h-5 w-5 text-primary" />
-                    Profile
+                    {t("profileTitle")}
                   </CardTitle>
-                  <CardDescription>Your personal information</CardDescription>
+                  <CardDescription>{t("profileDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid gap-4">
                     <div className="space-y-2">
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                        Display Name
+                        {t("displayName")}
                       </Label>
                       {editingProfile ? (
                         <Input
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
                           className="h-12 rounded-xl font-medium"
-                          placeholder="Enter your name"
+                          placeholder={t("enterName")}
                           autoFocus
                         />
                       ) : (
@@ -374,7 +376,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                        Email Address
+                        {t("emailAddress")}
                       </Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -396,12 +398,12 @@ export default function SettingsPage() {
                         {savingProfile ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving...
+                            {t("saving")}
                           </>
                         ) : (
                           <>
                             <Check className="mr-2 h-4 w-4" />
-                            Save
+                            {t("save")}
                           </>
                         )}
                       </Button>
@@ -415,7 +417,7 @@ export default function SettingsPage() {
                         disabled={savingProfile}
                       >
                         <X className="mr-2 h-4 w-4" />
-                        Cancel
+                        {t("cancel")}
                       </Button>
                     </div>
                   ) : (
@@ -425,7 +427,7 @@ export default function SettingsPage() {
                       onClick={() => setEditingProfile(true)}
                     >
                       <Pencil className="mr-2 h-4 w-4" />
-                      Edit Profile
+                      {t("editProfile")}
                     </Button>
                   )}
                 </CardContent>
@@ -442,25 +444,25 @@ export default function SettingsPage() {
                 <CardHeader>
                   <CardTitle className="text-xl font-black flex items-center gap-2">
                     <Lock className="h-5 w-5 text-primary" />
-                    Security
+                    {t("securityTitle")}
                   </CardTitle>
-                  <CardDescription>Manage your password and authentication</CardDescription>
+                  <CardDescription>{t("securityDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-8">
                   {/* Change Password */}
                   <form onSubmit={handleChangePassword} className="space-y-4">
-                    <h3 className="font-bold text-sm">Change Password</h3>
+                    <h3 className="font-bold text-sm">{t("changePassword")}</h3>
                     <div className="space-y-3">
                       <div className="space-y-2">
                         <Label className="text-xs font-bold text-muted-foreground">
-                          Current Password
+                          {t("currentPassword")}
                         </Label>
                         <div className="relative">
                           <Input
                             type={showCurrent ? "text" : "password"}
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
-                            placeholder="Enter current password"
+                            placeholder={t("enterCurrentPassword")}
                             className="h-12 rounded-xl pr-10"
                           />
                           <button
@@ -474,14 +476,14 @@ export default function SettingsPage() {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-xs font-bold text-muted-foreground">
-                          New Password
+                          {t("newPassword")}
                         </Label>
                         <div className="relative">
                           <Input
                             type={showNew ? "text" : "password"}
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
-                            placeholder="Enter new password"
+                            placeholder={t("enterNewPassword")}
                             className="h-12 rounded-xl pr-10"
                           />
                           <button
@@ -495,14 +497,14 @@ export default function SettingsPage() {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-xs font-bold text-muted-foreground">
-                          Confirm New Password
+                          {t("confirmNewPassword")}
                         </Label>
                         <div className="relative">
                           <Input
                             type={showConfirm ? "text" : "password"}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder="Confirm new password"
+                            placeholder={t("confirmNewPasswordPlaceholder")}
                             className="h-12 rounded-xl pr-10"
                           />
                           <button
@@ -523,10 +525,10 @@ export default function SettingsPage() {
                       {changingPassword ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Changing...
+                          {t("changing")}
                         </>
                       ) : (
-                        "Change Password"
+                        t("changePassword")
                       )}
                     </Button>
                   </form>
@@ -535,14 +537,14 @@ export default function SettingsPage() {
 
                   {/* Two-Factor Authentication */}
                   <div className="space-y-4">
-                    <h3 className="font-bold text-sm">Two-Factor Authentication</h3>
+                    <h3 className="font-bold text-sm">{t("twoFactorAuth")}</h3>
                     <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
                       <div className="flex items-center gap-3">
                         <ShieldCheck className={`h-5 w-5 ${user.twoFactorEnabled ? "text-emerald-500" : "text-muted-foreground"}`} />
                         <div>
-                          <p className="font-bold text-sm">2FA Status</p>
+                          <p className="font-bold text-sm">{t("twoFAStatus")}</p>
                           <p className="text-xs text-muted-foreground">
-                            Add an extra layer of security to your account
+                            {t("twoFADesc")}
                           </p>
                         </div>
                       </div>
@@ -550,7 +552,7 @@ export default function SettingsPage() {
                         variant={user.twoFactorEnabled ? "default" : "outline"}
                         className={`rounded-full font-bold ${user.twoFactorEnabled ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : ""}`}
                       >
-                        {user.twoFactorEnabled ? "Enabled" : "Not Enabled"}
+                        {user.twoFactorEnabled ? t("enabled") : t("notEnabled")}
                       </Badge>
                     </div>
 
@@ -562,14 +564,14 @@ export default function SettingsPage() {
                         onClick={handleEnable2FA}
                       >
                         <ShieldCheck className="mr-2 h-4 w-4" />
-                        Enable 2FA
+                        {t("enable2FA")}
                       </Button>
                     )}
 
                     {twoFAStep === "loading" && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Setting up two-factor authentication...
+                        {t("settingUp2FA")}
                       </div>
                     )}
 
@@ -582,10 +584,10 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                           <h4 className="font-bold text-sm flex items-center gap-2">
                             <Smartphone className="h-4 w-4" />
-                            Step 1: Scan QR Code
+                            {t("step1ScanQr")}
                           </h4>
                           <p className="text-xs text-muted-foreground">
-                            Open your authenticator app (Google Authenticator, Authy, etc.) and scan this QR code.
+                            {t("step1Desc")}
                           </p>
                         </div>
 
@@ -601,7 +603,7 @@ export default function SettingsPage() {
 
                         <div className="space-y-2">
                           <p className="text-xs text-muted-foreground">
-                            Or enter this code manually:
+                            {t("enterManually")}
                           </p>
                           <div className="flex items-center gap-2">
                             <code className="flex-1 p-2 rounded-lg bg-muted text-xs font-mono break-all">
@@ -612,7 +614,7 @@ export default function SettingsPage() {
                               size="sm"
                               onClick={() => {
                                 navigator.clipboard.writeText(twoFASecret)
-                                toast.success("Secret copied to clipboard")
+                                toast.success(t("secretCopied"))
                               }}
                             >
                               <Copy className="h-3 w-3" />
@@ -623,9 +625,9 @@ export default function SettingsPage() {
                         <Separator />
 
                         <div className="space-y-2">
-                          <h4 className="font-bold text-sm">Step 2: Enter Verification Code</h4>
+                          <h4 className="font-bold text-sm">{t("step2Verify")}</h4>
                           <p className="text-xs text-muted-foreground">
-                            Enter the 6-digit code from your authenticator app to verify setup.
+                            {t("step2Desc")}
                           </p>
                           <div className="flex gap-2">
                             <Input
@@ -640,7 +642,7 @@ export default function SettingsPage() {
                               onClick={handleVerify2FA}
                               disabled={totpCode.length !== 6}
                             >
-                              Verify
+                              {t("verify")}
                             </Button>
                           </div>
                         </div>
@@ -651,7 +653,7 @@ export default function SettingsPage() {
                           className="rounded-xl"
                           onClick={handleCancel2FA}
                         >
-                          Cancel Setup
+                          {t("cancelSetup")}
                         </Button>
                       </motion.div>
                     )}
@@ -659,7 +661,7 @@ export default function SettingsPage() {
                     {twoFAStep === "verifying" && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 rounded-xl border border-border/50">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Verifying code...
+                        {t("verifyingCode")}
                       </div>
                     )}
 
@@ -672,11 +674,10 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                           <h4 className="font-bold text-sm flex items-center gap-2 text-emerald-500">
                             <Check className="h-4 w-4" />
-                            2FA Enabled Successfully
+                            {t("twoFAEnabled")}
                           </h4>
                           <p className="text-xs text-muted-foreground">
-                            Save these backup codes in a secure location. Each code can only be used once.
-                            If you lose access to your authenticator app, you can use these codes to log in.
+                            {t("backupCodesDesc")}
                           </p>
                         </div>
 
@@ -699,14 +700,14 @@ export default function SettingsPage() {
                             onClick={handleCopyBackupCodes}
                           >
                             <Copy className="mr-2 h-3 w-3" />
-                            Copy All Codes
+                            {t("copyAllCodes")}
                           </Button>
                           <Button
                             size="sm"
                             className="rounded-xl font-bold"
                             onClick={handleCancel2FA}
                           >
-                            Done
+                            {t("done")}
                           </Button>
                         </div>
                       </motion.div>
@@ -722,10 +723,10 @@ export default function SettingsPage() {
                         {disabling2FA ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Disabling...
+                            {t("disabling")}
                           </>
                         ) : (
-                          "Disable 2FA"
+                          t("disable2FA")
                         )}
                       </Button>
                     )}
@@ -744,47 +745,44 @@ export default function SettingsPage() {
                 <CardHeader>
                   <CardTitle className="text-xl font-black flex items-center gap-2 text-red-500">
                     <AlertTriangle className="h-5 w-5" />
-                    Danger Zone
+                    {t("dangerZone")}
                   </CardTitle>
                   <CardDescription>
-                    Irreversible actions that affect your account
+                    {t("dangerDesc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10 space-y-4">
                     <div>
-                      <p className="font-bold text-sm">Delete Account</p>
+                      <p className="font-bold text-sm">{t("deleteAccount")}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Permanently delete your account and all associated data. This action cannot
-                        be undone.
+                        {t("deleteAccountDesc")}
                       </p>
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="destructive" className="rounded-xl font-bold">
-                          Delete Account
+                          {t("deleteAccount")}
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent className="rounded-2xl">
                         <AlertDialogHeader>
                           <AlertDialogTitle className="font-black">
-                            Are you absolutely sure?
+                            {t("deleteConfirmTitle")}
                           </AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will permanently delete your account, including all your order
-                            history, eSIM data, and personal information. This action cannot be
-                            undone.
+                            {t("deleteConfirmDesc")}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel className="rounded-xl font-bold">
-                            Cancel
+                            {t("cancel")}
                           </AlertDialogCancel>
                           <AlertDialogAction
                             onClick={handleDeleteAccount}
                             className="rounded-xl font-bold bg-red-500 hover:bg-red-600"
                           >
-                            Yes, delete my account
+                            {t("yesDelete")}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
