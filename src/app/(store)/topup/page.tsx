@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -62,6 +63,7 @@ function formatData(amount: number, unit: string): string {
 }
 
 export default function TopupPage() {
+  const t = useTranslations("topup")
   const [step, setStep] = useState<Step>("lookup")
   const [lookupType, setLookupType] = useState<LookupType>("order_number")
   const [inputValue, setInputValue] = useState("")
@@ -92,7 +94,7 @@ export default function TopupPage() {
       const usageData = await usageRes.json()
 
       if (!usageRes.ok || !usageData.success) {
-        setError(usageData.error || "Failed to find eSIM")
+        setError(usageData.error || t("failedToFind"))
         return
       }
 
@@ -120,7 +122,7 @@ export default function TopupPage() {
 
       setStep("select")
     } catch {
-      setError("Network error. Please try again.")
+      setError(t("networkError"))
     } finally {
       setIsLoading(false)
     }
@@ -148,7 +150,7 @@ export default function TopupPage() {
       const orderData = await orderRes.json()
 
       if (!orderRes.ok || !orderData.success) {
-        setError(orderData.error || "Failed to create order")
+        setError(orderData.error || t("failedToCreateOrder"))
         return
       }
 
@@ -166,7 +168,7 @@ export default function TopupPage() {
       const checkoutData = await checkoutRes.json()
 
       if (!checkoutRes.ok || !checkoutData.success) {
-        setError(checkoutData.error || "Failed to create checkout session")
+        setError(checkoutData.error || t("failedToCheckout"))
         return
       }
 
@@ -175,7 +177,7 @@ export default function TopupPage() {
         window.location.href = checkoutData.data.url
       }
     } catch {
-      setError("Failed to process checkout. Please try again.")
+      setError(t("failedToProcess"))
     } finally {
       setIsCheckingOut(false)
     }
@@ -192,19 +194,19 @@ export default function TopupPage() {
 
           <div className="container mx-auto px-4 text-center space-y-6">
             <Badge className="bg-primary/10 text-primary border-0 px-4 py-1.5 text-xs font-black uppercase tracking-wider">
-              <Zap className="h-3 w-3 mr-1" /> Top Up
+              <Zap className="h-3 w-3 mr-1" /> {t("badge")}
             </Badge>
             <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]">
-              Top Up Your{" "}
-              <span className="text-primary italic">eSIM</span>
+              {t("title")}{" "}
+              <span className="text-primary italic">{t("titleHighlight")}</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-medium">
-              Running low on data? Extend your eSIM plan with a quick top-up. No new QR code needed.
+              {t("subtitle")}
             </p>
 
             {/* Progress Steps */}
             <div className="flex items-center justify-center gap-2 pt-4">
-              {["Find eSIM", "Select Plan", "Checkout"].map((label, i) => {
+              {[t("stepFind"), t("stepSelect"), t("stepCheckout")].map((label, i) => {
                 const stepIndex = i === 0 ? "lookup" : i === 1 ? "select" : "checkout"
                 const isActive = step === stepIndex
                 const isPast =
@@ -265,7 +267,7 @@ export default function TopupPage() {
                         className="flex-1 rounded-xl font-bold text-xs"
                       >
                         <CreditCard className="h-3.5 w-3.5 mr-2" />
-                        Order Number
+                        {t("orderNumber")}
                       </Button>
                       <Button
                         variant={lookupType === "iccid" ? "default" : "outline"}
@@ -274,20 +276,20 @@ export default function TopupPage() {
                         className="flex-1 rounded-xl font-bold text-xs"
                       >
                         <Hash className="h-3.5 w-3.5 mr-2" />
-                        ICCID
+                        {t("iccid")}
                       </Button>
                     </div>
 
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                        {lookupType === "order_number" ? "Order Number" : "ICCID Number"}
+                        {lookupType === "order_number" ? t("orderNumber") : t("iccidNumber")}
                       </label>
                       <div className="flex gap-2">
                         <Input
                           placeholder={
                             lookupType === "order_number"
-                              ? "MBL-XXXXXXXX"
-                              : "Enter your ICCID number"
+                              ? t("orderNumberPlaceholder")
+                              : t("iccidPlaceholder")
                           }
                           value={inputValue}
                           onChange={(e) => setInputValue(e.target.value)}
@@ -346,10 +348,10 @@ export default function TopupPage() {
                           <TrendingUp className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-bold text-sm">Current Usage</p>
+                          <p className="font-bold text-sm">{t("currentUsage")}</p>
                           <p className="text-xs text-muted-foreground">
-                            {formatData(usage.dataUsed, usage.dataUnit)} of{" "}
-                            {formatData(usage.dataTotal, usage.dataUnit)} used
+                            {formatData(usage.dataUsed, usage.dataUnit)} {t("of")}{" "}
+                            {formatData(usage.dataTotal, usage.dataUnit)} {t("used")}
                           </p>
                         </div>
                       </div>
@@ -367,7 +369,7 @@ export default function TopupPage() {
                           ) : (
                             <WifiOff className="h-3 w-3 mr-1" />
                           )}
-                          {usage.remainingDays}d left
+                          {t("daysLeftShort", { days: usage.remainingDays })}
                         </Badge>
                       </div>
                     </div>
@@ -376,7 +378,7 @@ export default function TopupPage() {
 
                 {/* Top-Up Plans */}
                 <div>
-                  <h2 className="text-xl font-black mb-4">Select a Top-Up Plan</h2>
+                  <h2 className="text-xl font-black mb-4">{t("selectPlan")}</h2>
                   {products.length > 0 ? (
                     <div className="grid gap-3">
                       {products.map((product) => (
@@ -436,10 +438,10 @@ export default function TopupPage() {
                     <Card className="border-white/5 bg-white/[0.03]">
                       <CardContent className="p-8 text-center">
                         <p className="text-muted-foreground">
-                          No compatible top-up plans found for this eSIM.
+                          {t("noPlans")}
                         </p>
                         <Button variant="outline" className="mt-4 rounded-xl" asChild>
-                          <Link href="/products">Browse All Plans</Link>
+                          <Link href="/products">{t("browseAll")}</Link>
                         </Button>
                       </CardContent>
                     </Card>
@@ -464,7 +466,7 @@ export default function TopupPage() {
 
                         <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                            Email Address
+                            {t("emailAddress")}
                           </label>
                           <Input
                             type="email"
@@ -485,7 +487,7 @@ export default function TopupPage() {
                           ) : (
                             <Zap className="h-4 w-4 mr-2 fill-current" />
                           )}
-                          Proceed to Payment
+                          {t("proceedToPayment")}
                         </Button>
                       </CardContent>
                     </Card>
@@ -500,7 +502,7 @@ export default function TopupPage() {
                     className="text-sm"
                   >
                     <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
-                    Search again
+                    {t("searchAgain")}
                   </Button>
                 </div>
               </div>
