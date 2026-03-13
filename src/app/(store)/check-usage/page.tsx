@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -53,28 +54,28 @@ function getStatusConfig(status: string) {
   switch (status) {
     case "active":
       return {
-        label: "Active",
+        label: "active",
         color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
         dot: "bg-emerald-500",
         icon: Wifi,
       }
     case "expired":
       return {
-        label: "Expired",
+        label: "expired",
         color: "bg-red-500/10 text-red-400 border-red-500/20",
         dot: "bg-red-500",
         icon: WifiOff,
       }
     case "not_activated":
       return {
-        label: "Not Activated",
+        label: "notActivated",
         color: "bg-amber-500/10 text-amber-400 border-amber-500/20",
         dot: "bg-amber-500",
         icon: Clock,
       }
     default:
       return {
-        label: "Unknown",
+        label: "unknown",
         color: "bg-muted text-muted-foreground border-border",
         dot: "bg-muted-foreground",
         icon: AlertCircle,
@@ -83,6 +84,7 @@ function getStatusConfig(status: string) {
 }
 
 export default function CheckUsagePage() {
+  const t = useTranslations("checkUsage")
   const [lookupType, setLookupType] = useState<LookupType>("order_number")
   const [inputValue, setInputValue] = useState("")
   const [usage, setUsage] = useState<UsageData | null>(null)
@@ -112,7 +114,7 @@ export default function CheckUsagePage() {
 
       setUsage(data.data)
     } catch {
-      setError("Network error. Please try again.")
+      setError(t("networkError"))
     } finally {
       setIsLoading(false)
     }
@@ -138,14 +140,14 @@ export default function CheckUsagePage() {
 
           <div className="container mx-auto px-4 text-center space-y-6">
             <Badge className="bg-primary/10 text-primary border-0 px-4 py-1.5 text-xs font-black uppercase tracking-wider">
-              <TrendingUp className="h-3 w-3 mr-1" /> eSIM Usage
+              <TrendingUp className="h-3 w-3 mr-1" /> {t("badge")}
             </Badge>
             <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]">
-              Check Your{" "}
-              <span className="text-primary italic">Data Usage</span>
+              {t("title")}{" "}
+              <span className="text-primary italic">{t("titleHighlight")}</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-medium">
-              Enter your order number or ICCID to check your remaining data and plan status.
+              {t("subtitle")}
             </p>
           </div>
         </section>
@@ -164,7 +166,7 @@ export default function CheckUsagePage() {
                     className="flex-1 rounded-xl font-bold text-xs"
                   >
                     <CreditCard className="h-3.5 w-3.5 mr-2" />
-                    Order Number
+                    {t("orderNumber")}
                   </Button>
                   <Button
                     variant={lookupType === "iccid" ? "default" : "outline"}
@@ -173,21 +175,21 @@ export default function CheckUsagePage() {
                     className="flex-1 rounded-xl font-bold text-xs"
                   >
                     <Hash className="h-3.5 w-3.5 mr-2" />
-                    ICCID
+                    {t("iccid")}
                   </Button>
                 </div>
 
                 {/* Input */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    {lookupType === "order_number" ? "Order Number" : "ICCID Number"}
+                    {lookupType === "order_number" ? t("orderNumber") : t("iccidNumber")}
                   </label>
                   <div className="flex gap-2">
                     <Input
                       placeholder={
                         lookupType === "order_number"
-                          ? "MBL-XXXXXXXX"
-                          : "Enter your ICCID number"
+                          ? t("orderNumberPlaceholder")
+                          : t("iccidPlaceholder")
                       }
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
@@ -208,8 +210,8 @@ export default function CheckUsagePage() {
                   </div>
                   <p className="text-[10px] text-muted-foreground">
                     {lookupType === "order_number"
-                      ? "Find this in your order confirmation email"
-                      : "The ICCID is on your eSIM profile or confirmation email"}
+                      ? t("orderNumberHelp")
+                      : t("iccidHelp")}
                   </p>
                 </div>
 
@@ -252,9 +254,9 @@ export default function CheckUsagePage() {
                         </div>
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                            Data Usage
+                            {t("dataUsage")}
                           </p>
-                          <p className="font-bold text-sm">eSIM Tracker</p>
+                          <p className="font-bold text-sm">{t("esimTracker")}</p>
                         </div>
                       </div>
                       <Badge
@@ -264,7 +266,7 @@ export default function CheckUsagePage() {
                         )}
                       >
                         <div className={cn("h-1.5 w-1.5 rounded-full mr-1 animate-pulse", statusConfig.dot)} />
-                        {statusConfig.label}
+                        {t(statusConfig.label)}
                       </Badge>
                     </div>
 
@@ -276,7 +278,7 @@ export default function CheckUsagePage() {
                             {formatData(usage.dataUsed, usage.dataUnit)}
                           </span>
                           <span className="text-sm font-medium text-muted-foreground ml-1">
-                            of {formatData(usage.dataTotal, usage.dataUnit)}
+                            {t("of")} {formatData(usage.dataTotal, usage.dataUnit)}
                           </span>
                         </div>
                         <span className="text-2xl font-black text-muted-foreground">
@@ -297,7 +299,7 @@ export default function CheckUsagePage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          Remaining
+                          {t("remaining")}
                         </p>
                         <p className="text-lg font-black">
                           {formatData(Math.max(0, usage.dataTotal - usage.dataUsed), usage.dataUnit)}
@@ -305,12 +307,12 @@ export default function CheckUsagePage() {
                       </div>
                       <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          Days Left
+                          {t("daysLeft")}
                         </p>
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-muted-foreground" />
                           <p className="text-lg font-black">
-                            {usage.remainingDays > 0 ? `${usage.remainingDays}d` : "Expired"}
+                            {usage.remainingDays > 0 ? `${usage.remainingDays}d` : t("expired")}
                           </p>
                         </div>
                       </div>
@@ -320,7 +322,7 @@ export default function CheckUsagePage() {
                     {usage.iccid && (
                       <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
-                          ICCID
+                          {t("iccid")}
                         </p>
                         <p className="font-mono text-xs text-muted-foreground">{usage.iccid}</p>
                       </div>
@@ -334,7 +336,7 @@ export default function CheckUsagePage() {
                       >
                         <Link href="/topup">
                           <Zap className="h-4 w-4 mr-2 fill-current" />
-                          Top Up Data
+                          {t("topUpData")}
                         </Link>
                       </Button>
                       <Button
@@ -359,7 +361,7 @@ export default function CheckUsagePage() {
           <section className="py-16">
             <div className="container mx-auto px-4 max-w-3xl">
               <h2 className="text-2xl font-black tracking-tight text-center mb-8">
-                How to find your details
+                {t("howToFind")}
               </h2>
               <div className="grid md:grid-cols-2 gap-6">
                 <Card className="border-white/5 bg-white/[0.03]">
@@ -367,9 +369,9 @@ export default function CheckUsagePage() {
                     <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
                       <CreditCard className="h-5 w-5 text-primary" />
                     </div>
-                    <h3 className="font-bold">Order Number</h3>
+                    <h3 className="font-bold">{t("orderNumberTitle")}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Your order number (e.g., MBL-XXXXXXXX) can be found in your order confirmation email or your account dashboard.
+                      {t("orderNumberDesc")}
                     </p>
                   </CardContent>
                 </Card>
@@ -378,9 +380,9 @@ export default function CheckUsagePage() {
                     <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
                       <Hash className="h-5 w-5 text-primary" />
                     </div>
-                    <h3 className="font-bold">ICCID Number</h3>
+                    <h3 className="font-bold">{t("iccidTitle")}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Your ICCID is a unique identifier for your eSIM. Find it in your device settings under Cellular/Mobile Data, or in your confirmation email.
+                      {t("iccidDesc")}
                     </p>
                   </CardContent>
                 </Card>
@@ -388,11 +390,11 @@ export default function CheckUsagePage() {
 
               <div className="text-center mt-12">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Need more data? Top up your existing eSIM plan.
+                  {t("needMoreData")}
                 </p>
                 <Button variant="outline" className="rounded-2xl px-8 h-12 font-bold" asChild>
                   <Link href="/topup">
-                    Top Up eSIM <ArrowRight className="ml-2 h-4 w-4" />
+                    {t("topUpEsim")} <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </div>
