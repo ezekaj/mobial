@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { motion } from "framer-motion"
 import { useQuery } from "@tanstack/react-query"
 import {
@@ -69,6 +70,7 @@ const statusColors: Record<string, string> = {
 }
 
 export default function DashboardPage() {
+  const t = useTranslations("dashboard")
   const { user, isLoading: authLoading, openAuthModal } = useAuth()
 
   const { data: ordersData, isLoading: ordersLoading } = useQuery({
@@ -101,16 +103,16 @@ export default function DashboardPage() {
           <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto">
             <UserIcon className="h-10 w-10 text-primary" />
           </div>
-          <h1 className="text-3xl font-black tracking-tight">Sign in to continue</h1>
+          <h1 className="text-3xl font-black tracking-tight">{t("signInToContinue")}</h1>
           <p className="text-muted-foreground font-medium">
-            Log in to access your dashboard, manage your eSIMs, and view your orders.
+            {t("signInDesc")}
           </p>
           <Button
             size="lg"
             className="rounded-2xl px-10 h-14 font-black"
             onClick={() => openAuthModal("login")}
           >
-            Sign In
+            {t("signIn")}
           </Button>
         </motion.div>
       </div>
@@ -145,7 +147,7 @@ export default function DashboardPage() {
               </Avatar>
               <div>
                 <h1 className="text-3xl md:text-4xl font-black tracking-tight">
-                  Welcome back, {user.name || "Traveler"}
+                  {t("welcomeBack", { name: user.name || "Traveler" })}
                 </h1>
                 <p className="text-muted-foreground font-medium mt-1">{user.email}</p>
               </div>
@@ -167,7 +169,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">
-                      Active eSIMs
+                      {t("activeEsims")}
                     </p>
                     <p className="text-3xl font-black">{loading ? "..." : activeEsims}</p>
                   </div>
@@ -183,7 +185,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">
-                      Total Orders
+                      {t("totalOrders")}
                     </p>
                     <p className="text-3xl font-black">{loading ? "..." : totalOrders}</p>
                   </div>
@@ -199,10 +201,10 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">
-                      Account Status
+                      {t("accountStatus")}
                     </p>
                     <Badge className="mt-1 rounded-full font-bold bg-green-500/10 text-green-500 border-green-500/20">
-                      Verified
+                      {t("verified")}
                     </Badge>
                   </div>
                 </div>
@@ -218,11 +220,11 @@ export default function DashboardPage() {
             className="mb-12"
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-black tracking-tight">Recent Orders</h2>
+              <h2 className="text-2xl font-black tracking-tight">{t("recentOrders")}</h2>
               {orders.length > 0 && (
                 <Button variant="ghost" className="text-primary font-bold rounded-xl" asChild>
                   <Link href="/orders">
-                    View All <ArrowRight className="ml-2 h-4 w-4" />
+                    {t("viewAll")} <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               )}
@@ -238,12 +240,12 @@ export default function DashboardPage() {
                   <div className="w-16 h-16 bg-muted rounded-[1.5rem] flex items-center justify-center mx-auto">
                     <Package className="h-8 w-8 text-muted-foreground" />
                   </div>
-                  <h3 className="text-xl font-black">No orders yet</h3>
+                  <h3 className="text-xl font-black">{t("noOrdersYet")}</h3>
                   <p className="text-muted-foreground">
-                    Browse our eSIM plans and get connected anywhere in the world.
+                    {t("noOrdersDesc")}
                   </p>
                   <Button className="rounded-2xl font-bold" asChild>
-                    <Link href="/products">Browse eSIMs</Link>
+                    <Link href="/products">{t("browseEsims")}</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -305,7 +307,7 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <h2 className="text-2xl font-black tracking-tight mb-6">Quick Actions</h2>
+            <h2 className="text-2xl font-black tracking-tight mb-6">{t("quickActions")}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Button
                 variant="outline"
@@ -314,7 +316,7 @@ export default function DashboardPage() {
               >
                 <Link href="/products">
                   <ShoppingBag className="h-5 w-5 text-primary" />
-                  Browse eSIMs
+                  {t("browseEsims")}
                 </Link>
               </Button>
               <Button
@@ -324,7 +326,7 @@ export default function DashboardPage() {
               >
                 <Link href="/orders">
                   <Package className="h-5 w-5 text-blue-500" />
-                  View All Orders
+                  {t("viewAllOrders")}
                 </Link>
               </Button>
               <Button
@@ -334,7 +336,7 @@ export default function DashboardPage() {
               >
                 <Link href="/settings">
                   <Settings className="h-5 w-5 text-muted-foreground" />
-                  Account Settings
+                  {t("accountSettings")}
                 </Link>
               </Button>
             </div>
