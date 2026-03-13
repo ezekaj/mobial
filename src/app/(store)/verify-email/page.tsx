@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useTranslations } from "next-intl"
 import { useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { Loader2, CheckCircle, XCircle, ArrowLeft } from "lucide-react"
@@ -11,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 type VerificationState = "loading" | "success" | "error"
 
 export default function VerifyEmailPage() {
+  const t = useTranslations("verifyEmail")
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
 
@@ -20,7 +22,7 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     if (!token) {
       setState("error")
-      setMessage("No verification token provided. Please check your email for the correct link.")
+      setMessage(t("noToken"))
       return
     }
 
@@ -42,7 +44,7 @@ export default function VerifyEmailPage() {
     }
 
     verifyEmail()
-  }, [token])
+  }, [token, t])
 
   return (
       <div className="flex-1 flex items-center justify-center px-4 py-16">
@@ -64,9 +66,9 @@ export default function VerifyEmailPage() {
                   >
                     <Loader2 className="h-8 w-8 text-primary animate-spin" />
                   </motion.div>
-                  <CardTitle className="text-2xl font-bold">Verifying your email</CardTitle>
+                  <CardTitle className="text-2xl font-bold">{t("verifyingTitle")}</CardTitle>
                   <CardDescription>
-                    Please wait while we verify your email address...
+                    {t("verifyingDesc")}
                   </CardDescription>
                 </>
               )}
@@ -81,7 +83,7 @@ export default function VerifyEmailPage() {
                   >
                     <CheckCircle className="h-8 w-8 text-primary" />
                   </motion.div>
-                  <CardTitle className="text-2xl font-bold">Email verified!</CardTitle>
+                  <CardTitle className="text-2xl font-bold">{t("successTitle")}</CardTitle>
                   <CardDescription>{message}</CardDescription>
                 </>
               )}
@@ -96,7 +98,7 @@ export default function VerifyEmailPage() {
                   >
                     <XCircle className="h-8 w-8 text-destructive" />
                   </motion.div>
-                  <CardTitle className="text-2xl font-bold">Verification failed</CardTitle>
+                  <CardTitle className="text-2xl font-bold">{t("errorTitle")}</CardTitle>
                   <CardDescription>{message}</CardDescription>
                 </>
               )}
@@ -106,7 +108,7 @@ export default function VerifyEmailPage() {
               {state === "success" && (
                 <div className="flex flex-col gap-3">
                   <Button className="w-full" asChild>
-                    <Link href="/">Log in</Link>
+                    <Link href="/">{t("logIn")}</Link>
                   </Button>
                 </div>
               )}
@@ -116,7 +118,7 @@ export default function VerifyEmailPage() {
                   <Button variant="ghost" className="w-full" asChild>
                     <Link href="/">
                       <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to home
+                      {t("backToHome")}
                     </Link>
                   </Button>
                 </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowLeft,
@@ -17,6 +18,7 @@ import { troubleshootingTree, type TroubleshootingNode } from "@/lib/troubleshoo
 import Link from "next/link"
 
 export default function TroubleshootingPage() {
+  const t = useTranslations("troubleshooting")
   const [history, setHistory] = useState<string[]>(["start"])
   const currentId = history[history.length - 1]
   const currentNode = troubleshootingTree[currentId]
@@ -45,13 +47,13 @@ export default function TroubleshootingPage() {
 
           <div className="container mx-auto px-4 text-center space-y-4">
             <Badge className="bg-primary/10 text-primary border-0 px-4 py-1.5 text-xs font-black uppercase tracking-wider">
-              <HelpCircle className="h-3 w-3 mr-1" /> Troubleshooting
+              <HelpCircle className="h-3 w-3 mr-1" /> {t("badge")}
             </Badge>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight">
-              eSIM <span className="text-primary italic">Help Center</span>
+              {t("title")} <span className="text-primary italic">{t("titleHighlight")}</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-              Follow the guided steps to resolve common eSIM issues.
+              {t("subtitle")}
             </p>
           </div>
         </section>
@@ -68,7 +70,7 @@ export default function TroubleshootingPage() {
                   onClick={goBack}
                   className="rounded-xl text-xs font-bold"
                 >
-                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                  <ArrowLeft className="h-4 w-4 mr-1" /> {t("back")}
                 </Button>
               )}
               {history.length > 1 && (
@@ -78,7 +80,7 @@ export default function TroubleshootingPage() {
                   onClick={restart}
                   className="rounded-xl text-xs font-bold ml-auto"
                 >
-                  <RotateCcw className="h-4 w-4 mr-1" /> Start Over
+                  <RotateCcw className="h-4 w-4 mr-1" /> {t("startOver")}
                 </Button>
               )}
             </div>
@@ -135,7 +137,7 @@ export default function TroubleshootingPage() {
                             {currentNode.solution.title}
                           </h2>
                           <p className="text-sm text-muted-foreground mt-1">
-                            Follow these steps in order
+                            {t("followSteps")}
                           </p>
                         </div>
                       </div>
@@ -154,16 +156,16 @@ export default function TroubleshootingPage() {
                       {currentNode.solution.contactSupport && (
                         <div className="pt-4 border-t border-border/50">
                           <p className="text-sm text-muted-foreground mb-3">
-                            Still need help? Our support team is here for you.
+                            {t("stillNeedHelp")}
                           </p>
                           <div className="flex flex-wrap gap-3">
                             <Button variant="outline" className="rounded-xl" asChild>
                               <a href="mailto:support@mobialo.eu">
-                                <Mail className="h-4 w-4 mr-2" /> Email Support
+                                <Mail className="h-4 w-4 mr-2" /> {t("emailSupport")}
                               </a>
                             </Button>
                             <Button variant="outline" className="rounded-xl" asChild>
-                              <Link href="/faq">View FAQ</Link>
+                              <Link href="/faq">{t("viewFaq")}</Link>
                             </Button>
                           </div>
                         </div>
@@ -175,7 +177,7 @@ export default function TroubleshootingPage() {
                         onClick={restart}
                         className="rounded-xl text-xs font-bold"
                       >
-                        <RotateCcw className="h-4 w-4 mr-1" /> Troubleshoot Another Issue
+                        <RotateCcw className="h-4 w-4 mr-1" /> {t("troubleshootAnother")}
                       </Button>
                     </CardContent>
                   </Card>
@@ -189,18 +191,18 @@ export default function TroubleshootingPage() {
                 href="/check-usage"
                 className="p-5 rounded-2xl bg-card border border-border/50 hover:border-primary/20 transition-all text-center"
               >
-                <h3 className="font-bold text-sm">Check Usage</h3>
+                <h3 className="font-bold text-sm">{t("checkUsage")}</h3>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  View remaining data
+                  {t("viewRemainingData")}
                 </p>
               </Link>
               <Link
                 href="/compatible-devices"
                 className="p-5 rounded-2xl bg-card border border-border/50 hover:border-primary/20 transition-all text-center"
               >
-                <h3 className="font-bold text-sm">Device Compatibility</h3>
+                <h3 className="font-bold text-sm">{t("deviceCompatibility")}</h3>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Check if your device supports eSIM
+                  {t("checkDeviceSupport")}
                 </p>
               </Link>
             </div>

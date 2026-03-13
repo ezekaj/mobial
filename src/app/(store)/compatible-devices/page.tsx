@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useTranslations } from "next-intl"
 import { motion } from "framer-motion"
 import {
   Search,
@@ -159,6 +160,7 @@ const deviceCategories: DeviceCategory[] = [
 ]
 
 export default function CompatibleDevicesPage() {
+  const t = useTranslations("compatibleDevices")
   const [searchQuery, setSearchQuery] = useState("")
 
   const filteredCategories = useMemo(() => {
@@ -199,21 +201,20 @@ export default function CompatibleDevicesPage() {
               className="max-w-3xl mx-auto space-y-6"
             >
               <Badge className="bg-primary/10 text-primary border-0 px-4 py-1.5 text-xs font-black uppercase">
-                Compatibility
+                {t("badge")}
               </Badge>
               <h1 className="text-4xl md:text-6xl font-black tracking-tight">
-                Compatible{" "}
-                <span className="text-primary italic">Devices</span>
+                {t("title")}{" "}
+                <span className="text-primary italic">{t("titleHighlight")}</span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Check if your device supports eSIM. We list {totalDevices}+
-                devices across all major brands.
+                {t("subtitle", { count: totalDevices })}
               </p>
 
               <div className="max-w-lg mx-auto relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
-                  placeholder="Search for your device..."
+                  placeholder={t("searchPlaceholder")}
                   className="pl-12 h-14 rounded-2xl text-base bg-card border-border/50"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -236,14 +237,10 @@ export default function CompatibleDevicesPage() {
                   <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div className="text-sm text-muted-foreground">
                     <p className="font-medium text-foreground mb-1">
-                      Important Note
+                      {t("importantNote")}
                     </p>
                     <p>
-                      Most phones manufactured after 2020 support eSIM. Your
-                      device must be <strong>carrier-unlocked</strong> to use an
-                      eSIM from MobiaL. Carrier-locked phones may restrict eSIM
-                      usage even if the hardware supports it. Contact your
-                      carrier if you&apos;re unsure.
+                      {t("importantNoteText")}
                     </p>
                   </div>
                 </CardContent>
@@ -263,17 +260,17 @@ export default function CompatibleDevicesPage() {
               >
                 <Smartphone className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground text-lg">
-                  No devices found matching &quot;{searchQuery}&quot;
+                  {t("noDevicesFound", { query: searchQuery })}
                 </p>
                 <p className="text-muted-foreground mt-2 text-sm">
-                  If your device isn&apos;t listed, it may still support eSIM.{" "}
+                  {t("notListedText")}{" "}
                   <Link
                     href="/contact"
                     className="text-primary hover:underline"
                   >
-                    Contact us
+                    {t("contactUs")}
                   </Link>{" "}
-                  to verify.
+                  {t("toVerify")}
                 </p>
               </motion.div>
             ) : (
@@ -296,7 +293,7 @@ export default function CompatibleDevicesPage() {
                             variant="secondary"
                             className="rounded-full px-3"
                           >
-                            {category.devices.length} devices
+                            {category.devices.length} {t("devices")}
                           </Badge>
                         </div>
                       </div>
@@ -327,17 +324,16 @@ export default function CompatibleDevicesPage() {
               className="text-center mt-16 space-y-6"
             >
               <p className="text-muted-foreground">
-                Don&apos;t see your device? Most modern smartphones support
-                eSIM. Check your device settings or contact us.
+                {t("dontSeeDevice")}
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Button className="rounded-2xl" asChild>
                   <Link href="/guides/installation">
-                    Installation Guide <ArrowRight className="ml-2 h-4 w-4" />
+                    {t("installationGuide")} <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
                 <Button variant="outline" className="rounded-2xl" asChild>
-                  <Link href="/products">Browse eSIM Plans</Link>
+                  <Link href="/products">{t("browseEsimPlans")}</Link>
                 </Button>
               </div>
             </motion.div>

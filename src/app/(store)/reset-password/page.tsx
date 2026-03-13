@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import { motion } from "framer-motion"
 import { Mail, Loader2, ArrowLeft, CheckCircle } from "lucide-react"
 import Link from "next/link"
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function ResetPasswordPage() {
+  const t = useTranslations("resetPassword")
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -33,7 +35,7 @@ export default function ResetPasswordPage() {
       }
 
       if (response.status === 429) {
-        throw new Error("Too many requests. Please wait a few minutes and try again.")
+        throw new Error(t("tooManyRequests"))
       }
 
       setIsSubmitted(true)
@@ -64,10 +66,9 @@ export default function ResetPasswordPage() {
                   >
                     <CheckCircle className="h-8 w-8 text-primary" />
                   </motion.div>
-                  <CardTitle className="text-2xl font-bold">Check your email</CardTitle>
+                  <CardTitle className="text-2xl font-bold">{t("checkEmail")}</CardTitle>
                   <CardDescription>
-                    If an account exists with <span className="font-medium text-foreground">{email}</span>,
-                    you&apos;ll receive a password reset link shortly.
+                    {t("emailSentDesc", { email })}
                   </CardDescription>
                 </>
               ) : (
@@ -75,9 +76,9 @@ export default function ResetPasswordPage() {
                   <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
                     <Mail className="h-8 w-8 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl font-bold">Reset your password</CardTitle>
+                  <CardTitle className="text-2xl font-bold">{t("title")}</CardTitle>
                   <CardDescription>
-                    Enter the email address associated with your account and we&apos;ll send you a link to reset your password.
+                    {t("subtitle")}
                   </CardDescription>
                 </>
               )}
@@ -87,7 +88,7 @@ export default function ResetPasswordPage() {
               {isSubmitted ? (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground text-center">
-                    Didn&apos;t receive the email? Check your spam folder or try again.
+                    {t("didntReceive")}
                   </p>
                   <div className="flex flex-col gap-3">
                     <Button
@@ -98,12 +99,12 @@ export default function ResetPasswordPage() {
                         setEmail("")
                       }}
                     >
-                      Try again
+                      {t("tryAgain")}
                     </Button>
                     <Button variant="ghost" className="w-full" asChild>
                       <Link href="/">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to home
+                        {t("backToHome")}
                       </Link>
                     </Button>
                   </div>
@@ -118,7 +119,7 @@ export default function ResetPasswordPage() {
 
                   <div className="space-y-2">
                     <label htmlFor="email" className="text-sm font-medium">
-                      Email address
+                      {t("emailAddress")}
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -138,13 +139,13 @@ export default function ResetPasswordPage() {
 
                   <Button type="submit" className="w-full" disabled={isLoading || !email}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Send reset link
+                    {t("sendResetLink")}
                   </Button>
 
                   <Button variant="ghost" className="w-full" asChild>
                     <Link href="/">
                       <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to home
+                      {t("backToHome")}
                     </Link>
                   </Button>
                 </form>
